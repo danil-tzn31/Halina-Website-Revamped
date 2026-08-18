@@ -63,6 +63,27 @@ Optional: fill in the remaining keys in `.env.local` (RapidAPI, a hotel
 provider, Stripe, Gemini) to enable live data instead of the sample-data
 fallbacks — see the comments in `.env.example` for where to get each one.
 
+## Testing payments locally
+
+Checkout uses Stripe, in test mode. Since Stripe can't reach `localhost`
+directly, confirming a booking as paid needs the [Stripe
+CLI](https://docs.stripe.com/stripe-cli) forwarding events to your dev
+server, in a second terminal tab alongside `npm run dev`:
+
+```bash
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
+
+The first time you run it, it prints a `whsec_...` value — paste that into
+`STRIPE_WEBHOOK_SECRET` in `.env.local` and restart `npm run dev`. It stays
+valid across future restarts of `stripe listen` on the same machine, so
+this is a one-time step. Without this running, checkout still redirects
+and completes in Stripe, but a booking never actually flips from `PENDING`
+to `PAID`, since that only happens inside the webhook handler.
+
+Use Stripe's standard test card to walk through checkout:
+`4242 4242 4242 4242`, any future expiry date, any CVC.
+
 ## Troubleshooting
 
 **`Validation Error Count: 1 [Context: getConfig]` during `npm install` or

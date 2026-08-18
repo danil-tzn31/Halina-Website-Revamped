@@ -30,8 +30,13 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — .env* also matches .env.example by pattern, so explicitly
+# un-ignore that one: it's a template with no real secrets (every value is
+# blank), meant to be committed so anyone cloning the repo knows which
+# variables to set. Without the line below, .env.example silently never
+# gets pushed at all — which is exactly what happened here originally.
 .env*
+!.env.example
 
 # vercel
 .vercel

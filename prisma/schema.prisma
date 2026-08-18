@@ -1,0 +1,68 @@
+// Halina Travel — database schema
+// After you have a real Postgres connection string (from Neon or Supabase),
+// put it in .env.local as DATABASE_URL, then run:
+//   npx prisma migrate dev --name init
+// (Run that on your own machine/terminal, not inside the Cowork sandbox —
+// Prisma needs to download a small engine binary the first time, which needs
+// normal internet access.)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  username     String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  phone        String?
+  // Defaults to false for every account, including ones that already
+  // exist — there's no signup flow that ever sets this to true (see
+  // section 32 in the plan doc for why: this is a single-user portfolio
+  // project, not a real product with a role-management UI), so the only
+  // way to become an admin is flipping this by hand in Prisma Studio after
+  // running the migration that adds this column.
+  isAdmin      Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  bookings     Booking[]
+}
+
+enum BookingType {
+  FLIGHT
+  HOTEL
+}
+
+enum BookingStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+// One table for both flight and hotel bookings (the old app used two
+// separate tables — FLIGHTS_BOOKINGS and HOTELS_BOOKINGS — for the same
+// shape of data). `type` tells you which kind of booking it is, and
+// `details` holds the fields that only apply to one type (e.g. flight
+// number, departure time), so we don't need a second table.
+model Booking {
+  id              String        @id @default(cuid())
+  user            User          @relation(fields: [userId], references: [id])
+  userId          String
+  type            BookingType
+  status          BookingStatus @default(PENDING)
+  name            String // e.g. hotel name, or "MNL -> CEB"
+  price           Decimal
+  currency        String        @default("USD")
+  dateFrom        DateTime
+  dateTo          DateTime
+  guests          Int           @default(1)
+  details         Json? // flight number/departure time, or hotel-specific extras
+  stripeSessionId String?
+  createdAt       DateTime      @default(now())
+}

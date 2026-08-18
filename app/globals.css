@@ -1,0 +1,101 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  /* Beach-themed brand palette, replacing the original Day 2 navy/muted-gold
+     set (see HOW-IT-WORKS.md's Day 6 color-refresh section for the full
+     story, including the actual contrast-ratio math behind every value
+     below). Every component reads off these variables — a brand color
+     change happens here, once, not per file.
+
+     Every text-on-background pairing below was checked against the real
+     WCAG contrast formula, not just eyeballed — each one clears 4.5:1 (the
+     accepted minimum for normal-size text), most by a comfortable margin.
+     The previous --sand value specifically failed that check outright
+     (2.2:1), which is a real, measurable reason it read as hard to read,
+     not just a style complaint. */
+  --ink: #173b3f; /* deep teal-charcoal, was a plain navy-charcoal */
+  --ink-soft: #3e5c58; /* muted sea-glass green-grey, darkened from the
+    original for better contrast (6.6:1 on --paper, vs. the original
+    pairing's 6.4:1) as well as a warmer, more coastal hue */
+  --paper: #fbf3e7; /* warm sand/cream, was a cooler off-white */
+  --paper-raised: #fffdf8; /* soft warm white for cards, was pure #fff */
+  --teal: #0f5e53; /* deep lagoon teal, darkened/saturated from the original
+    for real text-safe contrast (6.95:1 on --paper) — the original teal
+    measured only 4.09:1 on the new, slightly warmer --paper, under the
+    4.5:1 minimum */
+  --sand: #8a5d1e; /* rich amber-gold, darkened substantially from the
+    original #c9a15a, which measured 2.2:1 on --paper — a real contrast
+    failure, not just a shade choice. Still used for status pills and the
+    "showing sample data" notices, both on light backgrounds. */
+  --sand-light: #f3d9a0; /* NEW: a pale warm sand tone used only for small
+    text sitting directly on the hero photo (currently just the
+    "Philippines, curated" eyebrow) — --sand itself is tuned for *light*
+    backgrounds and would be too dark to read against the hero's dark
+    photo gradient, so on-photo text needs its own lighter value rather
+    than reusing --sand there. */
+  --line: rgba(23, 59, 63, 0.12);
+
+  /* shadcn/ui-style semantic aliases, mapped onto the brand palette so
+     components/ui/* (Button, etc.) automatically pick up the real colors
+     instead of generic slate. */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --accent: var(--teal);
+  --accent-foreground: var(--paper);
+  --muted: #f0e6d3;
+  --muted-foreground: var(--ink-soft);
+  --destructive: #b3432f;
+  --destructive-foreground: #fdf3f1;
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-teal: var(--teal);
+  --color-sand-light: var(--sand-light);
+  --color-sand: var(--sand);
+  --color-line: var(--line);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans:
+    var(--font-neue-montreal), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Deliberately no `prefers-color-scheme: dark` override here — the brand
+   palette above (paper background, ink text) is the design, not a "light
+   mode" that needs an automatic dark counterpart. A real dark theme is a
+   backlog item, not a free media-query flip. */
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  /* Regular (400) as the page-wide default, not the browser default
+     bold-capable stack. Semibold (600) is loaded too as of the admin
+     dashboard work, but only for a small number of deliberately-chosen
+     essential spots (the navbar wordmark) — this default stays Regular so
+     ordinary body copy and headings keep sizing up for hierarchy rather
+     than bolding up, the same reasoning the font loaded even fewer
+     weights than this under originally. */
+  font-weight: 400;
+}

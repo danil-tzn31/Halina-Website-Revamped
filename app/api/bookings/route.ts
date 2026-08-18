@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { createBookingSchema } from "@/lib/validators/booking";
@@ -40,7 +41,14 @@ export async function POST(req: NextRequest) {
       dateFrom: new Date(parsed.data.dateFrom),
       dateTo: new Date(parsed.data.dateTo),
       guests: parsed.data.guests,
-      details: parsed.data.details ?? {},
+      // `details` comes from validated JSON (z.record(z.string(),
+      // z.unknown()) in lib/validators/booking.ts), so it's already
+      // structurally JSON-safe — it went through req.json() to get here.
+      // TypeScript doesn't know that, though: it won't assign a value
+      // typed `unknown` to Prisma's InputJsonValue on its own, even though
+      // the runtime data is fine. Hence the explicit cast, rather than
+      // trying to redesign the Zod schema around Prisma's JSON type.
+      details: (parsed.data.details ?? {}) as Prisma.InputJsonValue,
     },
   });
 

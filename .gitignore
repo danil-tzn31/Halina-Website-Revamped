@@ -52,8 +52,3 @@ public/globe.svg
 public/next.svg
 public/vercel.svg
 public/window.svg
-
-# Old superseded working files (zipped daily deliveries, "incoming"
-# staging copies) — kept on disk only until you delete the folder
-# yourself; never meant to be tracked by git
-_to_delete/

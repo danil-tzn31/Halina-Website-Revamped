@@ -142,6 +142,32 @@ export function Navbar({
               </Link>
             </li>
           )}
+          {/* The session always carried a name/email (lib/auth.ts sets both
+              at login) but nothing ever displayed them — there was no way
+              to tell which account you were signed in as short of logging
+              out and checking. First name only, not the full name or
+              email: this is a quiet identity check, not a profile display,
+              so it should read as calm as the rest of the nav rather than
+              competing with "My Bookings"/"Admin" for attention. Not a
+              link — it's not clickable, just a label — so it deliberately
+              skips the hover-underline treatment every actual nav link
+              gets here, the one visual cue that tells you something is
+              interactive. Falls back to the full name (or nothing, via
+              `??`) if a session somehow has no space-separated first
+              token, though in practice authorize() in lib/auth.ts always
+              sets name to "firstName lastName". */}
+          {status === "authenticated" && session?.user?.name && (
+            <li
+              className={cn(
+                "text-[13px] tracking-wide",
+                showLight
+                  ? "text-paper/70 [text-shadow:0_1px_4px_rgb(0_0_0/45%)]"
+                  : "text-ink-soft/70"
+              )}
+            >
+              {session.user.name.split(" ")[0] ?? session.user.name}
+            </li>
+          )}
           <li>
             {status === "authenticated" ? (
               <button

@@ -1,8 +1,6 @@
 // Same idea as lib/flights/types.ts: one normalized shape every component
-// works with, independent of which provider produced it. Once the exact
-// TripAdvisor Scraper response shape is confirmed (see the note at the top
-// of tripadvisor-provider.ts), only that one file needs to change — nothing
-// here or in the UI does.
+// works with, independent of which provider produced it — only
+// tripadvisor-provider.ts needs to change if the underlying API changes.
 export type HotelOffer = {
   id: string;
   name: string;

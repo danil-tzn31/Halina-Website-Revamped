@@ -33,37 +33,27 @@ interface CurrencyContextValue {
 
 const CurrencyContext = createContext<CurrencyContextValue | null>(null);
 
-// This provider follows the same shape as AuthModalProvider
-// (lib/auth-modal-context.tsx): plain React Context + useState, wrapped
-// once in components/providers.tsx so any component anywhere in the tree
-// can reach it without prop-drilling a currency value through every layer
-// between the navbar's picker and, say, a flight card three levels deep in
-// a search results grid.
+// Same shape as AuthModalProvider (lib/auth-modal-context.tsx): plain React
+// Context + useState, wrapped once in components/providers.tsx so any
+// component can reach it without prop-drilling.
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  // Both server and first client render always start from the same fixed
-  // default ("PHP") — reading localStorage happens only inside the
-  // useEffect below, which never runs during server rendering. That keeps
-  // the very first render identical between server and client (avoiding
-  // the exact class of hydration mismatch documented in
-  // lib/flights/format.ts), at the cost of a saved preference taking
-  // effect a moment after the page first paints rather than immediately.
+  // Server and first client render both start from the fixed default
+  // ("PHP") — localStorage is only read inside the effect below, which
+  // never runs during server rendering. Keeps the first render identical
+  // between server and client, at the cost of a saved preference applying
+  // a moment after first paint rather than immediately.
   const [currency, setCurrencyState] = useState<CurrencyCode>("PHP");
   const [rates, setRates] = useState<Record<CurrencyCode, number>>(FALLBACK_RATES_PER_USD);
   const [ratesLoaded, setRatesLoaded] = useState(false);
   const [isFallback, setIsFallback] = useState(false);
 
-  // Restore a previously-picked currency, once, after mount. This
-  // deliberately reads localStorage inside an effect rather than in
-  // useState's lazy initializer — an initializer runs during render, and
-  // `window` exists during the browser's first render pass but not
-  // during server rendering, so reading it there would make the very
-  // first client render disagree with the server-rendered HTML (the same
-  // class of hydration mismatch documented in lib/flights/format.ts).
-  // Doing it in an effect means the first render is always "PHP" on both
-  // server and client, and only updates after mount if a saved value
-  // exists — a real setState-in-effect, but the safe kind the lint rule's
-  // own guidance calls out ("subscribing to an external system," here
-  // localStorage), not the kind that could just be computed during render.
+  // Restore a previously-picked currency, once, after mount. Reads
+  // localStorage in an effect rather than useState's lazy initializer,
+  // since an initializer runs during render and `window` isn't available
+  // during server rendering — reading it there would disagree with the
+  // server-rendered HTML. This is the safe kind of setState-in-effect
+  // (subscribing to an external system), not one that could just be
+  // computed during render.
   useEffect(() => {
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved && isSupportedCurrency(saved)) {
@@ -86,11 +76,10 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         setRatesLoaded(true);
       })
       .catch(() => {
-        // fetch() itself only rejects on a network-level failure (the
-        // route above already turns upstream/API failures into a normal
-        // 200 response with isFallback: true) — this catch just keeps the
-        // already-set FALLBACK_RATES_PER_USD default in place so prices
-        // still render instead of the page breaking.
+        // fetch() only rejects on a network-level failure (the route
+        // already turns upstream failures into a 200 with isFallback:
+        // true) — keep the FALLBACK_RATES_PER_USD default so prices still
+        // render.
         if (!cancelled) {
           setIsFallback(true);
           setRatesLoaded(true);

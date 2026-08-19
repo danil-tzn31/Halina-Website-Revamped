@@ -1,10 +1,6 @@
-// Plain, framework-free conversion math — kept separate from the React
-// context so it's easy to reason about (and could be unit-tested) on its
-// own. `ratesPerUsd` is "how many units of that currency equal 1 USD" for
-// every supported currency (see lib/currency/config.ts), so converting
-// between any two of them is just "go through USD as the middle step":
-// divide by the source currency's rate to get a USD amount, then multiply
-// by the target currency's rate.
+// Kept separate from the React context so it's easy to unit-test. Converts
+// by going through USD as the middle step: divide by the source currency's
+// rate to get a USD amount, then multiply by the target rate.
 export function convertAmount(
   amount: number,
   fromCurrency: string,
@@ -16,11 +12,9 @@ export function convertAmount(
   const fromRate = ratesPerUsd[fromCurrency];
   const toRate = ratesPerUsd[toCurrency];
 
-  // An offer's native currency should always be one of the five supported
-  // ones (every flight/hotel provider in this app only ever returns USD or
-  // PHP — see lib/flights/types.ts), but if that ever changes, showing the
-  // original, unconverted amount is a safer failure than showing a wrong
-  // number or crashing the page.
+  // Offers should always be USD or PHP, but if an unsupported currency ever
+  // shows up, returning the unconverted amount is a safer failure than a
+  // wrong number or a crash.
   if (!fromRate || !toRate) return amount;
 
   const amountInUsd = amount / fromRate;

@@ -1,14 +1,10 @@
 import type { FlightOffer, FlightSearchParams } from "./types";
 
-// A small seeded dataset, used only when the real RapidAPI call fails or
-// isn't configured yet. This exists for a specific, named reason (see the
-// revamp plan's "Risks" section): the Google Flights endpoint on RapidAPI
-// is an unofficial/reverse-engineered listing, not a sanctioned Google
-// API, so it can rate-limit or change shape without notice — including,
-// realistically, in the middle of a live interview demo. Rather than the
-// page going blank when that happens, it falls back to this so the search
-// experience still works end-to-end; the UI marks these results clearly as
-// sample data so nobody mistakes them for a real live price.
+// Seeded fallback dataset, used when the real RapidAPI call fails or isn't
+// configured. The Google Flights endpoint is an unofficial,
+// reverse-engineered listing that can rate-limit or change shape without
+// notice, so search falls back to this rather than showing a blank page.
+// The UI marks these results clearly as sample data.
 const AIRLINES: Array<{ name: string; code: string }> = [
   { name: "Philippine Airlines", code: "PR" },
   { name: "Cebu Pacific", code: "5J" },

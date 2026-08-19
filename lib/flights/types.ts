@@ -1,11 +1,8 @@
 // Shared shape for a flight result, independent of which provider produced
-// it. The route handler and every UI component only ever see this type —
-// they never touch the raw RapidAPI response shape directly. That's the
-// same "adapter" idea the hotel provider will use once its API is ready
-// (see lib/hotels/ later): swapping the underlying flights API to a
-// different RapidAPI listing, or a different provider entirely, means
-// rewriting google-flights-provider.ts only — every component below stays
-// untouched.
+// it. The route handler and every UI component only ever see this type,
+// never the raw RapidAPI response — same adapter pattern used by the
+// hotel provider (lib/hotels/). Swapping the underlying API means
+// rewriting google-flights-provider.ts only.
 export type FlightSegment = {
   airline: string;
   airlineLogo: string | null;
@@ -29,15 +26,10 @@ export type FlightOffer = {
 
 export type TripType = "one_way" | "round_trip";
 
-// This is deliberately still just a one-way search shape — a round trip is
-// modeled as two independent one-way searches (outbound leg from->to on
-// `date`, return leg to->from on the return date), not one combined
-// request. See HOW-IT-WORKS.md's "round trip is two one-way searches"
-// section for why: it mirrors how real booking sites actually work
-// (choose your departure flight, then choose your return flight) and it
-// means this provider never has to guess at an unconfirmed round-trip
-// request shape — every request it sends is the exact one-way shape
-// confirmed back on Day 3.
+// Deliberately still a one-way search shape — a round trip is modeled as
+// two independent one-way searches (outbound from->to, return to->from),
+// not one combined request. Mirrors how real booking sites work and keeps
+// this provider's request shape simple.
 export type FlightSearchParams = {
   from: string;
   to: string;

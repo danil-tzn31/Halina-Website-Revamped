@@ -4,18 +4,10 @@ import { z } from "zod";
 import type { QuizAnswers } from "@/lib/destinations/quiz";
 import { todayISODate, addDaysISO } from "@/lib/date-utils";
 
-// The real feature build on top of Halina-Revamp-Plan.md section 38's
-// confirmed-working trial (scripts/test-gemini.mjs) — same call shape,
-// same model, now wired into a real caller instead of a throwaway script.
-//
-// A lazy singleton, the exact same reasoning as lib/stripe.ts's
-// getStripe(): `new GoogleGenAI({ apiKey })` needs GEMINI_API_KEY to
-// already exist, so constructing it at module-load time (the moment
-// anything imports this file) would throw before the env var is ever
-// read — even for a request that has nothing to do with the AI search.
-// Only the one route that actually needs this
-// (app/api/ai-search/route.ts) pays that cost, and only once this
-// function is actually called.
+// Lazy singleton, same reasoning as lib/stripe.ts's getStripe():
+// constructing GoogleGenAI at module-load time would throw before
+// GEMINI_API_KEY is read, even for requests unrelated to AI search. Only
+// app/api/ai-search/route.ts pays that cost, and only when called.
 let client: GoogleGenAI | null = null;
 
 function getGeminiClient(): GoogleGenAI {
@@ -32,22 +24,15 @@ function getGeminiClient(): GoogleGenAI {
   return client;
 }
 
-// Mirrors the exact same three categories lib/destinations/data.ts already
-// defines (Vibe/Budget/GroupFit) — re-declared here as a Zod schema rather
-// than trusted just because Gemini's response parsed as valid JSON. A
-// response passing JSON.parse doesn't mean its *content* is trustworthy;
-// this is the same "don't believe a live third-party response blindly"
-// discipline already used for the flight/hotel/currency providers
-// (sections 9, 13, 19) — just checking a classification instead of a price.
+// Mirrors the Vibe/Budget/GroupFit categories from lib/destinations/data.ts,
+// re-declared as a Zod schema rather than trusted just because Gemini's
+// response parsed as valid JSON — passing JSON.parse doesn't mean the
+// content is trustworthy.
 //
-// `date` and `travelers` are new as of Halina-Revamp-Plan.md section 42 —
-// the original version of this feature only extracted the three quiz-style
-// tags above. `date` is a plain string here (not `z.string().nullable()`)
-// because Gemini's structured-output schema (RESPONSE_SCHEMA below) doesn't
-// need to model "no date" as a distinct JSON type: an empty string is the
-// "the sentence didn't give me a real date" sentinel, checked for and
-// turned into an actual `null` after parsing (see `toValidatedDate` below).
-// Same idea for `travelers`: `0` means "not mentioned," not "zero people."
+// `date` is a plain string, not `z.string().nullable()`: an empty string is
+// the "no date given" sentinel, converted to `null` after parsing (see
+// `toValidatedDate` below). Same idea for `travelers`: `0` means "not
+// mentioned," not "zero people."
 const extractionSchema = z.object({
   vibe: z.enum(["beach", "adventure", "culture"]),
   budget: z.enum(["budget", "mid", "splurge"]),
@@ -56,23 +41,16 @@ const extractionSchema = z.object({
   travelers: z.number().int().min(0).max(9),
 });
 
-// The JSON shape asked of Gemini itself — deliberately mirrors
-// extractionSchema above, so a response that actually follows this schema
-// should also pass that check. Keeping both (rather than trusting the
-// requested schema alone) is what catches the rare case where a model
-// doesn't perfectly honor a requested schema.
+// The JSON shape requested from Gemini — mirrors extractionSchema above so
+// a compliant response also passes that check, catching the rare case
+// where the model doesn't fully honor the requested schema.
 const RESPONSE_SCHEMA = {
   type: "object",
   properties: {
-    // This description is a direct fix for a real, reported bug: a
-    // sentence about mountain views got classified as "beach". The three
-    // buckets below are the ONLY options that exist — there's no separate
-    // mountain/nature category — and without an explicit description,
-    // Gemini had no way to know that mountain/countryside scenery belongs
-    // under "culture" (matching how lib/destinations/data.ts actually
-    // tags Batad Rice Terraces, the one mountain destination this site
-    // has), not under "beach". Spelling out what each bucket really means,
-    // and explicitly forbidding "beach" as a default, is the fix.
+    // Spells out what each bucket means and explicitly forbids "beach" as
+    // a default — without this, sentences about mountain views were
+    // getting misclassified as "beach" since there's no separate
+    // mountain/nature category.
     vibe: {
       type: "string",
       enum: ["beach", "adventure", "culture"],
@@ -122,30 +100,20 @@ const RESPONSE_SCHEMA = {
   required: ["vibe", "budget", "group", "date", "travelers"],
 };
 
-// What this module actually promises the rest of the app: the same three
-// quiz tags as before, plus a best-effort date/travelers count that's
-// already been range-checked against today's real date — never Gemini's
-// raw, unvalidated numbers. `null` means "not confidently extracted," the
-// same meaning `null` already has everywhere else in this codebase that
-// distinguishes "no data" from "a real zero" (e.g. the hotel rating sort,
-// section 21).
+// The same three quiz tags plus a best-effort date/travelers count that's
+// already been range-checked, never Gemini's raw unvalidated numbers.
+// `null` means "not confidently extracted."
 export type TripExtraction = QuizAnswers & {
   date: string | null;
   travelers: number | null;
 };
 
-// Turns Gemini's raw `date` string into either a real, sane date or `null`
-// — never trusted as-is, the same "don't believe a live third-party
-// response blindly" discipline as the rest of this file. Three ways a raw
-// date gets rejected: it's the "not mentioned" empty-string sentinel, it
-// doesn't even look like YYYY-MM-DD, or it isn't actually in the future.
-// That last check reuses the exact rule the search bar itself enforces
-// (Halina-Revamp-Plan.md section 31 — today counts as too late, not just
-// yesterday): `lib/validators/flight-search.ts` and
-// `lib/validators/hotel-search.ts` would reject a prefilled date that
-// failed this same check, so there's no point ever handing one through.
-// A generous but real upper bound (one year out) guards against a
-// misfired classification landing on a wildly distant, clearly-wrong date.
+// Turns Gemini's raw `date` string into a real date or `null`. Rejected if
+// it's the empty-string "not mentioned" sentinel, doesn't match
+// YYYY-MM-DD, or isn't strictly in the future — same rule the search bar
+// validators enforce, so there's no point handing through a date they'd
+// reject anyway. The one-year upper bound guards against a misfired
+// classification landing on a wildly distant date.
 function toValidatedDate(rawDate: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) return null;
   const today = todayISODate();
@@ -155,44 +123,31 @@ function toValidatedDate(rawDate: string): string | null {
 }
 
 // Turns a free-text sentence like "a relaxing beach trip for two on a
-// budget, sometime next month" into the same three answers a visitor would
-// otherwise pick by clicking through the destination quiz
-// (lib/destinations/quiz.ts), plus — as of section 42 — a best-effort date
-// and traveler count, so the feature can do something the quiz genuinely
-// can't: hand a visitor a real, mostly-filled-in flight/hotel search
-// instead of just a destination suggestion. See Halina-Revamp-Plan.md
-// section 42 for why this scope was added after the two features turned
-// out to produce identical destination results otherwise.
+// budget, sometime next month" into the same three answers the destination
+// quiz produces, plus a best-effort date and traveler count — letting this
+// feature hand back a real, mostly-filled-in flight/hotel search instead of
+// just a destination suggestion.
 //
-// Returns null on ANY failure — a network problem, Gemini being down, a
-// response that isn't valid JSON, or JSON that doesn't match the expected
-// shape — rather than letting a bad response crash the request or silently
-// coerce into a wrong-but-plausible answer. Every caller treats null as
-// "couldn't understand that." Unlike the flight/hotel/currency providers,
-// there's no seeded mock data to fall back to here — there's no honest
-// "fake" classification for a sentence Gemini couldn't parse, so admitting
-// it plainly is the only honest option. A failed/invalid `date` or
-// `travelers` extraction specifically does NOT fail the whole request the
-// same way, though — see the `toValidatedDate` call below, which quietly
-// downgrades a bad date to `null` rather than treating "couldn't extract a
-// date" as "couldn't understand the sentence at all."
+// Returns null on any failure (network, Gemini down, invalid JSON/shape)
+// rather than crashing the request or coercing a wrong-but-plausible
+// answer; every caller treats null as "couldn't understand that." There's
+// no mock fallback here, unlike the flight/hotel/currency providers —
+// there's no honest "fake" classification for an unparseable sentence. A
+// bad `date`/`travelers` extraction alone doesn't fail the whole request,
+// though — `toValidatedDate` downgrades a bad date to `null` instead.
 export async function extractTripPreferences(
   sentence: string
 ): Promise<TripExtraction | null> {
   try {
     const ai = getGeminiClient();
 
-    // Gemini has no built-in notion of "today" — it only knows what's in
-    // the prompt — so today's real date is spelled out explicitly here.
-    // Without this, a phrase like "next month" has nothing to be relative
-    // to, and Gemini would have to guess at what "today" even is.
+    // Gemini has no built-in notion of "today", so it's spelled out
+    // explicitly here — otherwise a phrase like "next month" has nothing
+    // to be relative to.
     const interaction = await ai.interactions.create({
-      // If this ever 404s again the way the older gemini-2.5-flash call
-      // did (Halina-Revamp-Plan.md section 38), that's the same kind of
-      // routine model-lineup change on Google's side, not a sign this code
-      // broke on its own — check the installed @google/genai package's own
-      // type definitions for the current model list before assuming
-      // otherwise.
+      // If this model name ever 404s, check the installed @google/genai
+      // package's type definitions for the current model list — likely a
+      // routine lineup change on Google's side, not a bug here.
       model: "gemini-3.6-flash",
       input:
         `Today's date is ${todayISODate()}. A traveler described their ` +
@@ -231,12 +186,9 @@ export async function extractTripPreferences(
           : null,
     };
   } catch {
-    // Deliberately swallows the real error rather than re-throwing —
-    // matches every other external-provider adapter in this project
-    // (lib/flights/google-flights-provider.ts,
-    // lib/hotels/tripadvisor-provider.ts): a third-party outage here
-    // should degrade this one feature gracefully, not take down the
-    // request it's part of.
+    // Swallow the error rather than re-throw, same as the other
+    // external-provider adapters — a third-party outage should degrade
+    // this feature gracefully, not take down the request it's part of.
     return null;
   }
 }

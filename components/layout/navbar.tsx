@@ -8,28 +8,18 @@ import { useAuthModal } from "@/lib/auth-modal-context";
 import { cn } from "@/lib/utils";
 import { CurrencyPicker } from "@/components/layout/currency-picker";
 
-// How far you need to scroll before the nav switches from transparent to
-// solid. Small on purpose (a couple of lines of body text) — the point is
-// "as soon as you've moved past the very top of the page," not requiring a
-// full scroll past the hero photo first.
+// Scroll distance before the nav switches from transparent to solid. Small
+// on purpose — just past the very top of the page, not a full scroll past
+// the hero photo.
 const SCROLL_THRESHOLD = 24;
 
-// The nav is `fixed` — it floats over the page and never takes up its own
-// layout space, on every page, not just the homepage. Two variants control
-// what it looks like at the very top of the page, before any scrolling:
-// "overlay" (light text, transparent background — for pages that open on a
-// full-bleed photo, like the homepage hero or a destination page) and
-// "solid" (dark text — for pages that open directly on the plain paper
-// background, like My Bookings). Once you scroll past SCROLL_THRESHOLD,
-// the nav always switches to the same solid look regardless of which
-// variant it started as — see HOW-IT-WORKS.md for the full reasoning.
+// Fixed nav, floats over every page. "overlay" (light text, transparent
+// background) is for pages that open on a full-bleed photo; "solid" (dark
+// text) is for plain-background pages. Both switch to solid once scrolled
+// past SCROLL_THRESHOLD.
 //
-// Because this is now `fixed` instead of sitting in the normal document
-// flow, every page that renders it needs to reserve the equivalent space
-// itself if its content isn't meant to sit *under* a photo — see the
-// `pt-*` classes added to each non-hero page's `<main>` alongside this
-// change (a photo-hero page needs no such padding, since the nav is
-// supposed to float transparently over the photo exactly like before).
+// Since this sits outside normal document flow, non-hero pages need their
+// own top padding (`pt-*` on `<main>`) so content doesn't sit under it.
 export function Navbar({
   variant = "solid",
 }: {
@@ -60,26 +50,11 @@ export function Navbar({
       )}
     >
       <nav className="mx-auto flex w-full max-w-[1180px] items-center justify-between px-6 py-5 sm:px-10">
-        {/* `showLight` text gets a soft drop shadow on top of its own
-            opacity/color — a hero photo's brightness varies by crop and by
-            which specific photo is in play (this one has a light, hazy sky
-            band right where the nav sits), so opacity and color alone can't
-            guarantee contrast against every possible pixel behind it. A
-            shadow that darkens whatever's immediately behind the letterforms
-            works regardless of the photo's own brightness at that spot —
-            the same reason a photo caption or a video's subtitles almost
-            always carry a shadow instead of relying on a matched-brightness
-            background. Bumped from /75 to /90 base opacity at the same
-            time — the shadow alone helps most against a light patch of
-            photo, but the extra opacity keeps the *hover-to-full-white*
-            transition from being disproportionately large. */}
-        {/* The one deliberately-chosen spot for Semibold (600) in the
-            whole site — the wordmark is about as "essential" as text
-            gets, and it's short and never italicized, so there's no
-            synthetic-bold or synthetic-italic risk here the way there
-            would be applying this weight more broadly. See app/layout.tsx
-            for the full reasoning on why this stays rare rather than
-            becoming a general-purpose emphasis tool. */}
+        {/* Drop shadow on `showLight` text keeps it legible regardless of
+            the hero photo's brightness at that spot — opacity/color alone
+            can't guarantee contrast against every possible crop. */}
+        {/* Only spot using Semibold (600) on the site — short, never
+            italicized text, so no synthetic-bold/italic risk. */}
         <Link
           href="/"
           className={cn(
@@ -114,13 +89,8 @@ export function Navbar({
               />
             </Link>
           </li>
-          {/* Only rendered for an admin session — a regular account never
-              even sees this link exists, rather than seeing it and
-              hitting a redirect if they click it. The actual security
-              boundary is server-side (app/account/admin/page.tsx's own
-              isAdmin check, and the API route it calls re-checking the
-              same flag) — this is just not showing the door to everyone
-              who isn't allowed through it. */}
+          {/* Hides the link for non-admins; the real check is server-side
+              (isAdmin check in the admin page and its API route). */}
           {session?.user?.isAdmin && (
             <li>
               <Link
@@ -142,20 +112,10 @@ export function Navbar({
               </Link>
             </li>
           )}
-          {/* The session always carried a name/email (lib/auth.ts sets both
-              at login) but nothing ever displayed them — there was no way
-              to tell which account you were signed in as short of logging
-              out and checking. First name only, not the full name or
-              email: this is a quiet identity check, not a profile display,
-              so it should read as calm as the rest of the nav rather than
-              competing with "My Bookings"/"Admin" for attention. Not a
-              link — it's not clickable, just a label — so it deliberately
-              skips the hover-underline treatment every actual nav link
-              gets here, the one visual cue that tells you something is
-              interactive. Falls back to the full name (or nothing, via
-              `??`) if a session somehow has no space-separated first
-              token, though in practice authorize() in lib/auth.ts always
-              sets name to "firstName lastName". */}
+          {/* First name only, not a link — a quiet identity check rather
+              than a profile display, so it skips the hover-underline the
+              real nav links get. Falls back to the full name if there's no
+              space in it. */}
           {status === "authenticated" && session?.user?.name && (
             <li
               className={cn(

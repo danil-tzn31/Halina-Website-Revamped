@@ -10,13 +10,10 @@ export const HOTEL_SORT_OPTIONS: { value: HotelSortKey; label: string }[] = [
   { value: "rating_asc", label: "Rating: Low to High" },
 ];
 
-// `rating` can be `null` on a HotelOffer (see lib/hotels/types.ts — not
-// every provider response carries a rating). Whichever rating sort is
-// picked, hotels with no rating at all sink to the bottom rather than
-// being treated as "rating 0" — an unrated hotel isn't a badly-rated one,
-// it's just missing that data, so it shouldn't outrank real 1-star results
-// under "High to Low" or get buried above real 5-star results under "Low
-// to High."
+// `rating` can be `null` on a HotelOffer — not every provider response
+// carries one. Unrated hotels sink to the bottom of either rating sort
+// rather than being treated as "rating 0," which would wrongly outrank
+// real 1-star results.
 export function sortHotelOffers(offers: HotelOffer[], sortKey: HotelSortKey): HotelOffer[] {
   if (sortKey === "default") return offers;
   const sorted = [...offers];

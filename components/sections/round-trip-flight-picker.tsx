@@ -12,17 +12,12 @@ import { FLIGHT_SORT_OPTIONS, sortFlightOffers, type FlightSortKey } from "@/lib
 import type { FlightOffer } from "@/lib/flights/types";
 import { usePagination } from "@/lib/use-pagination";
 
-// Real flight-booking sites don't show one combined "round trip" result —
-// they have you pick a departure flight first, then pick a return flight
-// second (each leg has its own price, schedule, and stop count; combining
-// them into one search result would mean guessing at a request shape this
-// API was never confirmed to support — see HOW-IT-WORKS.md). This
-// component is the two-step version of that flow: it's handed two
-// independent one-way result sets (the outbound leg and the return leg,
-// each fetched exactly like a normal one-way search) and manages which
-// step the user is on locally. Both FlightSearchResults (homepage
-// carousel) and FlightResultsGrid (full /flights page) use this for
-// tripType === "round_trip"; one-way search never touches this file.
+// Round trips are modeled as pick-departure-then-pick-return, matching how
+// real booking sites work — each leg has its own price/schedule/stops
+// rather than one combined result. Handed two independent one-way result
+// sets and manages which step the user is on locally. Used by both
+// FlightSearchResults (homepage carousel) and FlightResultsGrid (full
+// /flights page) for tripType === "round_trip".
 type Step = "outbound" | "return";
 
 export function RoundTripFlightPicker({
@@ -197,13 +192,10 @@ function ResultsList({
   isFallback: boolean;
   onSelect: (offer: FlightOffer) => void;
 }) {
-  // 20 cards per page rather than every offer at once — see
-  // lib/use-pagination.ts for why. The homepage carousel already caps
-  // `offers` at 8 (via the `limit` prop above) before it ever reaches here,
-  // so totalPages there is always 1 and PaginationControls renders nothing
-  // — this only actually kicks in on the full /flights results page, and
-  // resets to page 1 independently for the outbound and return steps since
-  // each step calls ResultsList (and therefore this hook) separately.
+  // Homepage carousel caps `offers` at 8 via `limit` before reaching here,
+  // so pagination only actually kicks in on the full /flights page.
+  // Outbound and return steps each call ResultsList separately, so page
+  // state resets independently per step.
   const { pageItems, page, totalPages, goToPrev, goToNext } = usePagination(offers ?? []);
 
   return (

@@ -12,16 +12,10 @@ import type { TripType } from "@/lib/flights/types";
 type Tab = "flights" | "hotels";
 
 export function SearchBar({
-  // "home" is the original behavior: submitting always navigates to `/`
-  // with a `#search-results` anchor, for the homepage's carousel-style
-  // results (see components/sections/search-results-section.tsx). "results"
-  // is the new mode used when this same component is embedded directly on
-  // the /flights or /hotels results pages (see those files) — it needs to
-  // route straight to whichever page matches the currently-selected tab
-  // instead of back through the homepage, and its tab/trip-type labels need
-  // dark-on-light colors instead of the light-on-photo colors the homepage
-  // hero needs, since it's sitting on a plain paper background there
-  // instead of over the hero photo.
+  // "home" navigates to `/#search-results` for the homepage carousel.
+  // "results" is used when embedded on /flights or /hotels — routes
+  // straight to the matching results page and uses dark-on-light label
+  // colors instead of the light-on-photo homepage styling.
   mode = "home",
   initialTab,
   initialFrom,
@@ -56,31 +50,20 @@ export function SearchBar({
   const [guests, setGuests] = useState(initialGuests ?? 2);
   const router = useRouter();
   const isResultsMode = mode === "results";
-  // `null` in "home" mode (there's no ResultsPageShell around the homepage's
-  // search bar) — see results-transition.tsx for why "results" mode needs
-  // this at all instead of just calling router.push() directly.
+  // `null` in "home" mode — there's no ResultsPageShell around the
+  // homepage's search bar.
   const resultsTransition = useResultsTransition();
 
-  // The four date fields (depart/return, check-in/check-out) all used to be
-  // plain uncontrolled inputs (a `defaultValue`, read back out of FormData
-  // on submit) — that was enough when nothing needed to know a field's
-  // *current* value while typing. Warning captions and a dynamic `min` do
-  // need that, so these four became controlled state, the same treatment
-  // already given to the airport fields and the guest/adult counters.
+  // Controlled state (not defaultValue) so warning captions and dynamic
+  // `min` can read the current value while typing.
   const [departValue, setDepartValue] = useState(initialDepart ?? "");
   const [returnValue, setReturnValue] = useState(initialReturn ?? "");
   const [checkInValue, setCheckInValue] = useState(initialCheckIn ?? "");
   const [checkOutValue, setCheckOutValue] = useState(initialCheckOut ?? "");
 
-  // Originally today was treated as a valid, bookable date (same-day
-  // flights are real). After testing, that turned out to be the wrong call
-  // for this project specifically: searching with today's date routinely
-  // landed on fallback/mock results rather than anything useful, which
-  // reads as broken rather than as "same-day travel is genuinely rare to
-  // find." So the rule is now stricter than a typical real booking site —
-  // today counts as invalid too, only a date strictly *after* today is
-  // accepted. Recomputed on every render rather than once, since this is a
-  // date and the page could stay open across midnight.
+  // Today is excluded as a selectable date — same-day searches mostly hit
+  // fallback/mock results, which reads as broken. Recomputed every render
+  // since the page can stay open across midnight.
   const today = todayISODate();
   const minSelectableDate = addDaysISO(today, 1);
   const returnMin = departValue || minSelectableDate;
@@ -107,10 +90,8 @@ export function SearchBar({
         : INVALID_DATE_MESSAGE
       : undefined;
 
-  // Blocks the actual submit (on top of the `min` attribute already
-  // stopping most bad picks at the calendar-UI level) for whichever tab is
-  // currently showing — a leftover invalid hotel date shouldn't block a
-  // flights search and vice versa.
+  // Only checks the currently-visible tab's fields, so a stale invalid
+  // hotel date can't block a flights search and vice versa.
   const hasBlockingDateError =
     tab === "hotels"
       ? Boolean(checkInError || checkOutError)
@@ -123,21 +104,15 @@ export function SearchBar({
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    // The Search button is already disabled in this state (see the
-    // `disabled` prop below), but that alone doesn't stop a form from
-    // submitting via pressing Enter in a text field — this is the actual
-    // guard. The warning caption already on screen explains why nothing
-    // happened, so there's nothing more to show here.
+    // Button disabled state doesn't stop Enter-key submission — this is
+    // the actual guard.
     if (hasBlockingDateError) return;
     const formData = new FormData(e.currentTarget);
     const entries = Object.fromEntries(formData.entries()) as Record<string, string>;
 
-    // In "results" mode, go straight to the page that matches whichever
-    // tab is currently selected (which might not be the page this search
-    // bar started on — e.g. switching from Flights to Hotels while
-    // browsing /flights results and searching again should land on
-    // /hotels), instead of round-tripping through the homepage the way
-    // "home" mode does.
+    // Routes to whichever tab is currently selected, not necessarily the
+    // page this search bar started on (e.g. switching to Hotels while on
+    // /flights should land on /hotels).
     if (isResultsMode) {
       let url: string;
       if (tab === "flights") {
@@ -161,12 +136,9 @@ export function SearchBar({
         });
         url = `/hotels?${params.toString()}`;
       }
-      // Routed through startNavigation (see results-transition.tsx) rather
-      // than a bare router.push() so the results area can notice this
-      // specific navigation is in flight and show a skeleton instead of
-      // silently leaving the previous search's results on screen the whole
-      // time. Falls back to a plain router.push() if there's somehow no
-      // ResultsPageShell around this search bar.
+      // Routed through startNavigation so the results area shows a skeleton
+      // instead of leaving stale results on screen; falls back to a plain
+      // push if there's no ResultsPageShell around this bar.
       if (resultsTransition) {
         resultsTransition.startNavigation(() => router.push(url));
       } else {
@@ -223,38 +195,16 @@ export function SearchBar({
         )}
       </div>
 
-      {/*
-        This used to pick between three different explicit
-        `grid-template-columns` strings depending on tab/tripType, which
-        meant the bar's internal proportions (and, since the columns didn't
-        line up between the three shapes, its apparent overall shape)
-        visibly jumped every time someone switched tabs or trip type. Now
-        every field is just a flex item with a `grow` weight (set via
-        inline style below since Tailwind's JIT can't pick up a
-        dynamically-built arbitrary-value class like `flex-[1.3]`) — fields
-        share the row proportionally no matter how many of them there are,
-        so the bar's height, border, and overall rectangle never change
-        shape, only the internal dividers move a little to fit however many
-        fields this tab needs. Fixed-width fields (the swap button, the
-        adults/guests counter) opt out of growing with `fixedWidth` so they
-        stay a constant size instead of stretching.
-
-        Every field's `minWidth` floor got a pass here too: the old floor
-        (6rem) was too tight for the airport field's actual content —
-        e.g. "Puerto Princesa (Palawan) (PPS)" or even just "Cebu (CEB)"
-        at a squeezed row width — and was visibly clipping text rather
-        than just looking a little snug. See lib/flights/airports.ts for
-        why some of these city names are long.
-      */}
+      {/* Each field is a flex item with a `grow` weight (inline style,
+        since Tailwind's JIT can't pick up a dynamic `flex-[1.3]` class) so
+        the bar's overall shape stays constant across tabs/trip types —
+        only the internal dividers shift. Fixed-width fields (swap button,
+        counters) opt out via `fixedWidth`. */}
       <form onSubmit={handleSubmit}
         className={cn("mt-3 flex flex-col border border-line bg-paper-raised sm:flex-row sm:items-stretch",
-          // The homepage's heavier shadow (shadow-[0_30px_60px_-20px_rgba(0,0,0,0.5)])
-          // is sized to lift the bar off a busy photo background. On the
-          // plain paper background of the results pages, that reads as an
-          // oddly heavy shadow floating on nothing — this uses the same
-          // ink-tinted, lighter shadow already established elsewhere on the
-          // site for plain-background elevation (see the airport dropdown
-          // below, and the hotel result card's hover shadow).
+          // Homepage's heavier shadow lifts the bar off the photo
+          // background; results pages use the lighter ink-tinted shadow
+          // used elsewhere for plain-background elevation.
           isResultsMode ? "shadow-[0_20px_40px_-24px_rgba(22,35,43,0.35)]" : "shadow-[0_30px_60px_-20px_rgba(0,0,0,0.5)]")}>
         {tab === "hotels" ? (
           <>
@@ -334,27 +284,16 @@ function Field({
    * <form> for why some fields need more than the default. */
   minWidth?: string;
 }) {
-  // A native `<input type="date">` needs real room for its "mm/dd/yyyy" +
-  // calendar-icon content — with `minWidth: 0` (needed on the other fields
-  // so they can shrink to fit a crowded round-trip row) a date field could
-  // get squeezed narrower than that content, and the browser just clips
-  // part of the date instead of wrapping it. Giving date fields their own
-  // floor means they can still grow on a wide screen, but never shrink past
-  // "the date is fully visible." Every other plain text field defaults to
-  // 8rem now (up from 6rem) for the same reason, after 6rem turned out to
-  // still clip shorter real-world content like "Cebu (CEB)" once a row got
-  // crowded — see the comment above the <form> above.
+  // Date inputs need a wider floor than text fields — the browser clips
+  // "mm/dd/yyyy" + calendar icon instead of wrapping it if squeezed too
+  // narrow in a crowded round-trip row.
   const resolvedMinWidth = minWidth ?? (type === "date" ? "8.5rem" : "8rem");
 
   return (
     <label
-      // `relative` here is only for the error caption below — it's
-      // positioned `absolute` (like the airport dropdown elsewhere in this
-      // file) specifically so a validation message never changes this
-      // field's own height and pushes the whole bar's fixed-height row out
-      // of alignment with its neighbors. It floats just underneath the
-      // field instead, the same idea as a browser's own native "please
-      // fill out this field" tooltip.
+      // `relative` is for the error caption, positioned `absolute` so a
+      // validation message doesn't change this field's height and push
+      // the row out of alignment with its neighbors.
       className="relative flex flex-col justify-center border-b border-line px-5 py-3.5 sm:border-b-0 sm:border-r sm:py-0"
       style={fixedWidth ? { flex: `0 0 ${fixedWidth}` } : { flexGrow: grow, flexBasis: 0, minWidth: resolvedMinWidth }}
     >
@@ -373,21 +312,10 @@ function Field({
   );
 }
 
-// A dedicated field for "From"/"To" — replaces the old plain
-// `<input list="...">` + `<datalist>` pairing. `<datalist>` looked like
-// the simplest option (it's literally built for "text input with
-// suggestions"), but its actual suggestion-dropdown UI is drawn by the
-// browser, not by this site — which is both why it never matched the
-// site's design ("Dropdown design" feedback) and, worse, why it stopped
-// reliably showing suggestions at all in Safari (the earlier "options
-// won't show" bug): Safari's support for `<datalist>` has always been
-// weaker and less consistent than Chrome's, especially once other state
-// on the page changes (like search results appearing). Building the
-// dropdown ourselves — a plain absolutely-positioned list, shown/hidden
-// with normal React state — sidesteps that entirely: it's not relying on
-// any browser's particular (and inconsistent) implementation of a feature,
-// so it behaves identically everywhere, and it's built from this site's
-// own components so it actually looks like it belongs here.
+// Dedicated field for "From"/"To" instead of `<input list>` + `<datalist>`
+// — the native dropdown is browser-drawn, doesn't match the site's design,
+// and Safari's datalist support is inconsistent. A self-built dropdown
+// behaves the same everywhere.
 function AirportField({
   name,
   label,
@@ -474,16 +402,12 @@ function AirportField({
   );
 }
 
-// A guests/adults counter with its own +/- steppers instead of the
-// browser's native number-input spinner — the native one renders as a
-// tiny, inconsistently-styled OS widget that doesn't match this design at
-// all (part of the same "make dropdown/controls coherent with the site"
-// feedback the airport field above addresses), and it visually collided
-// with the field's own border in a crowded round-trip row. The underlying
-// element is still a real `<input type="number">` (so it still validates,
-// still submits via FormData under `name`, and mobile still shows a
-// numeric keypad) — only its native spin buttons are hidden via CSS,
-// replaced with two small custom buttons wired to the same state.
+// Guests/adults counter with custom +/- steppers instead of the browser's
+// native number-input spinner, which looks inconsistent across OSes and
+// collided with the field border in a crowded row. Still a real
+// `<input type="number">` underneath (validates, submits via FormData,
+// shows a numeric keypad on mobile) — only the native spin buttons are
+// hidden.
 function NumberField({
   name,
   label,

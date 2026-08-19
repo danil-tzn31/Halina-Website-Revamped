@@ -6,11 +6,10 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { getDestinationBySlug, DESTINATIONS } from "@/lib/destinations/data";
 
-// Static content — every slug is known ahead of time, so this could be
-// pre-rendered at build time (generateStaticParams), unlike the search
-// results pages which depend on request-time query params. Kept simple as
-// a plain dynamic Server Component for now since the destinations list is
-// small and this isn't the part of the site under time pressure.
+// Every slug is known ahead of time — could be pre-rendered with
+// generateStaticParams, unlike the search results pages which depend on
+// request-time query params. Left as a plain dynamic Server Component
+// since the destinations list is small.
 export default async function DestinationPage({
   params,
 }: {
@@ -42,12 +41,9 @@ export default async function DestinationPage({
         />
         <div className="absolute inset-x-0 bottom-0">
           <div className="mx-auto w-full max-w-[1180px] px-6 pb-10 sm:px-10">
-            {/* text-sand-light, not text-sand — same fix already applied to
-                the homepage hero's eyebrow (components/sections/hero.tsx):
-                text-sand is tuned for *light* backgrounds and reads as
-                low-contrast, muddy amber against a dark hero photo. This
-                page had the same "label directly on a photo" pattern but
-                had been missed when that fix went in. */}
+            {/* text-sand-light, not text-sand — text-sand is tuned for
+                light backgrounds and reads low-contrast against the dark
+                hero photo (same pattern as the homepage hero's eyebrow). */}
             <p className="text-[12px] uppercase tracking-[0.16em] text-sand-light">
               {destination.region}
             </p>
@@ -86,13 +82,9 @@ export default async function DestinationPage({
 
         <div className="mt-16 border-t border-line pt-8">
           <p className="text-[13px] italic text-ink-soft">More destinations</p>
-          {/* No min-w here — a fixed min-width on a left-aligned text link
-              left uneven-looking visual gaps between items: a short name
-              like "Coron" left a lot of empty box space before the next
-              gap-4 kicked in, while a long name like "Batad Rice Terraces"
-              exceeded the min-width and sat flush against its neighbor.
-              Sizing each link to its own content makes gap-4 the only
-              thing controlling spacing, so every gap reads the same. */}
+          {/* No min-w — a fixed min-width left uneven gaps between short
+              and long names. Sizing each link to its own content makes
+              gap-4 the only thing controlling spacing. */}
           <div className="mt-4 flex gap-6 overflow-x-auto pb-2">
             {DESTINATIONS.filter((d) => d.slug !== destination.slug).map((d) => (
               <Link

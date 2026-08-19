@@ -11,16 +11,10 @@ import { FLIGHT_SORT_OPTIONS, sortFlightOffers, type FlightSortKey } from "@/lib
 import type { FlightOffer, TripType } from "@/lib/flights/types";
 import { usePagination } from "@/lib/use-pagination";
 
-// The full-results-page counterpart to the homepage's carousel — same
-// cards and click-opens-a-modal behavior for one-way search, and the same
-// two-step RoundTripFlightPicker for round trips (see that component for
-// why round trips are "pick departure, then pick return" instead of one
-// combined result). Needs to be a client component because it owns the
-// "which card/step is selected" state; app/flights/page.tsx itself stays a
-// Server Component that does the data fetching — for a round trip, both
-// legs are fetched server-side up front (two searchFlights() calls) rather
-// than on demand, since there's no reason to make the browser wait on a
-// second round-trip once the server already has both results.
+// Full-results-page counterpart to the homepage's carousel — same cards,
+// same click-opens-a-modal behavior. Client component because it owns the
+// selected-card/step state; app/flights/page.tsx stays a Server Component
+// and fetches both legs of a round trip up front.
 export function FlightResultsGrid({
   tripType,
   fromCode,
@@ -50,10 +44,8 @@ export function FlightResultsGrid({
     () => sortFlightOffers(outboundOffers, sortKey),
     [outboundOffers, sortKey]
   );
-  // 20 cards per page rather than every offer at once — see
-  // lib/use-pagination.ts for why. Only used by the one-way branch below;
-  // the round-trip branch returns early into RoundTripFlightPicker, which
-  // paginates its own two steps independently.
+  // Only used by the one-way branch below; the round-trip branch returns
+  // early into RoundTripFlightPicker, which paginates its own two steps.
   const { pageItems, page, totalPages, goToPrev, goToNext } = usePagination(sortedOffers);
 
   if (tripType === "round_trip" && returnDate) {

@@ -23,13 +23,8 @@ export type AdminBookingRow = {
 
 const STATUS_OPTIONS = ["PENDING", "PAID", "CANCELLED"] as const;
 
-// The one interactive piece of the admin dashboard — everything else on
-// the page (app/account/admin/page.tsx, AdminUsersTable) is a plain,
-// read-only render of whatever Prisma returned. This is a Client Component
-// specifically because of that one interactive bit (the status dropdown)
-// plus pagination state, which — same reasoning as every results grid in
-// this app (flight-results-grid.tsx, hotel-results-grid.tsx) — needs to
-// live in the browser, not on the server.
+// Client Component for the status dropdown and pagination state; the rest
+// of the admin dashboard stays server-rendered.
 export function AdminBookingsTable({ bookings }: { bookings: AdminBookingRow[] }) {
   const router = useRouter();
   const { pageItems, page, totalPages, goToPrev, goToNext } = usePagination(bookings, 20);
@@ -53,12 +48,8 @@ export function AdminBookingsTable({ bookings }: { bookings: AdminBookingRow[] }
       return;
     }
 
-    // Re-runs the Server Component that fetched `bookings` in the first
-    // place, rather than trusting the dropdown's own new value directly —
-    // the database write already happened server-side; this just makes
-    // sure the table reflects what was actually saved, the same
-    // "server is the source of truth" reasoning /api/checkout/cancel's
-    // watcher uses elsewhere in this app.
+    // Re-fetches from the server rather than trusting the dropdown value
+    // directly, so the table reflects what was actually saved.
     router.refresh();
   }
 

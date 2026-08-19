@@ -6,22 +6,15 @@ import {
 } from "@/components/destinations/destination-grid";
 import { DESTINATIONS } from "@/lib/destinations/data";
 
-// The "see all" counterpart to the homepage's DestinationsSection, which
-// only ever shows a hand-picked six (getHomepageFeaturedDestinations).
-// This page renders every destination in DESTINATIONS instead — same
-// DestinationGrid/DestinationCard components, same bento sizing logic, just
-// a longer list. Reusing those components (rather than building a separate
-// layout from scratch) is exactly why the earlier zero-gap fix and the
-// same-shape-adjacency work were done at the reusable pattern level
-// instead of hard-coded for six cards — this page is the payoff of that
-// choice: nothing here had to be re-solved.
+// "See all" counterpart to the homepage's DestinationsSection, which only
+// shows a hand-picked six. Renders every destination in DESTINATIONS with
+// the same DestinationGrid/DestinationCard components and bento sizing.
 //
-// This page does pass its own `pattern` prop though: without it, this grid
-// would repeat the exact same 6-shape cycle the homepage uses, starting
-// from the same point, so the two grids would look identical at a glance.
-// SEE_ALL_BENTO_SPAN_PATTERN is a different (not just rotated) ordering
-// that's equally optimal for the no-same-shape-neighbors rule — see the
-// comment above it in destination-grid.tsx for how it was chosen.
+// Passes its own `pattern` prop — without it this grid would repeat the
+// same 6-shape cycle the homepage uses, so the two would look identical
+// at a glance. SEE_ALL_BENTO_SPAN_PATTERN is a different ordering that's
+// equally valid for the no-same-shape-neighbors rule (see
+// destination-grid.tsx).
 export default function DestinationsPage() {
   return (
     <div className="flex min-h-screen flex-col">

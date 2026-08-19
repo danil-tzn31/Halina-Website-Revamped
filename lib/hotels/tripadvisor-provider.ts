@@ -2,30 +2,23 @@ import type { HotelOffer, HotelSearchParams, HotelSearchResult } from "./types";
 import { getMockHotelOffers } from "./mock-data";
 
 // ---------------------------------------------------------------------
-// PROVIDER SWITCHED: "Tripadvisor Scraper" -> "Tripadvisor.com".
+// Uses the "Tripadvisor.com" RapidAPI listing, not "Tripadvisor Scraper" —
+// that one's only search endpoint is a place/entity autocomplete with no
+// price/rating fields, and its /hotels/list endpoint 502'd for smaller
+// destinations.
 //
-// The previous provider (tripadvisor-scraper.p.rapidapi.com) turned out to
-// have no path to real pricing: its one search endpoint is a place/entity
-// autocomplete with no price/rating/review fields on any result, and its
-// second endpoint (/hotels/list) 502'd for smaller destinations (Tagaytay,
-// Panglao) because it scrapes a live Tripadvisor page and that scrape
-// sometimes fails upstream. Confirmed directly in the RapidAPI playground
-// for this new host that it has a real, two-step, date-aware search:
+// Two-step search:
 //
 //   1. GET /auto-complete?query=<place name>
-//      Resolves a free-text place name to a list of matches, each carrying
-//      a `geoId` — both places (city/region, placeType "CITY") and
-//      individual named hotels show up here with their own geoId. We want
-//      the *place* match (so we get every hotel in that place), not a
-//      specific hotel entity, so we prefer a "CITY"-like entry and only
-//      fall back to the first result if none is tagged that way.
-//      Real example (query="Tagaytay"): geoId 317121 for the city itself,
-//      plus hotel entities like "Summit Ridge Tagaytay" (geoId 1485031).
+//      Resolves a free-text place name to matches, each carrying a
+//      `geoId`. Both places (city/region) and individual hotels show up
+//      here — we want the place match (so we get every hotel in it),
+//      preferring a "CITY"-tagged entry and falling back to the first
+//      result otherwise.
 //
 //   2. GET /hotels/search?geoId=<geoId>&checkIn=<YYYY-MM-DD>&checkOut=<YYYY-MM-DD>
-//      A genuine hotel availability search — unlike the old provider, this
-//      one needs dates, and returns real prices/ratings/photos. Confirmed
-//      shape (real example, geoId=60763/New York):
+//      Real hotel availability search with prices/ratings/photos. Example
+//      shape (geoId=60763/New York):
 //        { data: { hotels: [ {
 //          cardTitle: { string: "1. Crowne Plaza ..." },       // rank-prefixed
 //          bubbleRating: { rating: 4.7, numberReviews: { string: "(2,312)" } },
@@ -33,18 +26,13 @@ import { getMockHotelOffers } from "./mock-data";
 //          cardPhotos: [ { sizes: { urlTemplate: "...{width}x{height}..." } } ],
 //          cardLink: { route: { params: { contentId: 123456 } } },
 //        } ... ] } }
-//      No address/amenities fields are present in this shape, so (as
-//      before) address falls back to null and amenities to [] rather than
-//      guessing at field names that were never confirmed.
+//      No address/amenities fields exist in this shape, so both fall back
+//      to null/[] rather than guessing at unconfirmed field names.
 //
-// checkIn/checkOut now DO get sent to the provider (the old "this API
-// doesn't accept dates" note was specific to Tripadvisor Scraper and does
-// not apply here). Note the date format is YYYY-MM-DD, NOT the MM/DD/YYYY
-// the playground's example request happened to show — a real request with
-// MM/DD/YYYY came back with a 200 and an explicit validation error body,
-// {"errors":{"checkIn":"Incorrect checkIn format, should be YYYY-MM-DD"}},
-// so no conversion is needed: our form already collects dates in exactly
-// the format this endpoint wants (lib/validators/hotel-search.ts).
+// Date format is YYYY-MM-DD, not the MM/DD/YYYY the playground's example
+// request shows — sending MM/DD/YYYY gets an explicit validation error.
+// Our form already collects dates in the correct format
+// (lib/validators/hotel-search.ts).
 // ---------------------------------------------------------------------
 const API_HOST = "tripadvisor-com1.p.rapidapi.com";
 const API_BASE = `https://${API_HOST}`;
@@ -52,12 +40,11 @@ const API_BASE = `https://${API_HOST}`;
 type AutoCompleteItem = {
   geoId?: number | string;
   heading?: { htmlString?: string };
-  // Confirmed real shape: the place-type classification is nested here, not
-  // at the top level of the item — `trackingItems.placeType` is "ISLAND",
-  // "CITY", "HOTEL", etc. A search for "Cebu" returns "Cebu Island"
-  // (ISLAND) before "Cebu City" (CITY); the island's geoId has no hotel
-  // inventory on /hotels/search, which is why picking the wrong one matters
-  // (see pickGeoId below).
+  // The place-type classification is nested here, not at the top level —
+  // `trackingItems.placeType` is "ISLAND", "CITY", "HOTEL", etc. A search
+  // for "Cebu" returns "Cebu Island" (ISLAND) before "Cebu City" (CITY);
+  // the island's geoId has no hotel inventory on /hotels/search, which is
+  // why picking the wrong one matters (see pickGeoId below).
   trackingItems?: { placeType?: string; locationId?: number | string };
 };
 
@@ -96,14 +83,10 @@ function pickGeoId(items: AutoCompleteItem[]): string | null {
     (item.trackingItems?.placeType ?? "").toString().toUpperCase();
 
   // Prefer an actual CITY match over a broader region (ISLAND, GEO, etc.)
-  // or a specific hotel entity. Confirmed via a real "Cebu" search: the
-  // first result is "Cebu Island" (placeType ISLAND) — resolving to *that*
-  // geoId is what caused the very first real run to return zero usable
-  // offers, because /hotels/search has no hotel inventory attached to the
-  // island-level geoId. "Cebu City" (placeType CITY), the very next
-  // result, is the one that actually has hotels. Only if nothing is
-  // tagged CITY do we fall back to any non-HOTEL place, then finally to
-  // whatever the top result was.
+  // or a specific hotel entity — e.g. a "Cebu" search returns "Cebu
+  // Island" first, but that geoId has no hotel inventory on
+  // /hotels/search; "Cebu City" does. Falls back to any non-HOTEL place,
+  // then the top result.
   const cityMatch = items.find((item) => placeTypeOf(item) === "CITY");
   const broaderPlaceMatch = items.find((item) => {
     const type = placeTypeOf(item);
@@ -195,11 +178,9 @@ async function fetchFromTripAdvisor(
     throw new Error(`Could not resolve a geoId for "${params.destination}"`);
   }
 
-  // Confirmed live (Day 4, part 3): despite the playground example showing
-  // MM/DD/YYYY, the API's own validation error for a real request was
-  // explicit — {"errors":{"checkIn":"Incorrect checkIn format, should be
-  // YYYY-MM-DD"}} — so no conversion is needed; our form already collects
-  // dates in exactly that format (lib/validators/hotel-search.ts).
+  // Date format is YYYY-MM-DD despite the playground's MM/DD/YYYY example —
+  // our form already collects dates in the correct format
+  // (lib/validators/hotel-search.ts).
   const query = new URLSearchParams({
     geoId,
     checkIn: params.checkIn,

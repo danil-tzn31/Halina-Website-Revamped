@@ -2,15 +2,13 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 
-// Next.js 16 renamed middleware.js -> proxy.js (same mechanism, new file
-// name — see AGENTS.md/HOW-IT-WORKS.md). This is the replacement for the
-// old site's copy-pasted `if (!$_SESSION['logged_in'])` check at the top
-// of bookings.php: one place, runs before the page renders.
+// Replaces the old site's copy-pasted `if (!$_SESSION['logged_in'])` check
+// at the top of bookings.php — one place, runs before the page renders.
 //
-// Because login is a modal and there's no /login page to redirect to, a
-// signed-out visitor hitting /account/* gets sent to the homepage with
-// ?auth=login&next=<where they were going> — AuthQueryListener picks that
-// up and opens the modal automatically.
+// Login is a modal with no dedicated /login page, so a signed-out visitor
+// hitting /account/* gets sent to the homepage with
+// ?auth=login&next=<original path> — AuthQueryListener picks that up and
+// opens the modal automatically.
 export default auth((req) => {
   const isProtected = req.nextUrl.pathname.startsWith("/account");
 

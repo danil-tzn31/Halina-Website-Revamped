@@ -3,22 +3,19 @@ import { getMockFlightOffers } from "./mock-data";
 import { isDomesticRoute } from "./airports";
 import { hasTime } from "./format";
 
-// This is the direct replacement for the old site's flights3.js — same
-// RapidAPI listing ("Google Flights2"), but called from the server instead
-// of the browser, so the API key never reaches client-side JS. Everything
-// in this file is the *only* place that knows about this specific
-// provider's request/response shape; app/api/flights/search/route.ts and
-// every UI component only ever see the normalized FlightOffer type from
-// ./types.
+// Replaces the old site's flights3.js — same RapidAPI listing ("Google
+// Flights2"), but called from the server instead of the browser, so the
+// API key never reaches client-side JS. This file is the only place that
+// knows the provider's request/response shape; everything else only ever
+// sees the normalized FlightOffer type from ./types.
 const API_HOST = "google-flights2.p.rapidapi.com";
 const API_BASE = `https://${API_HOST}`;
 
 // The shape RapidAPI's "Google Flights2" listing actually returns. Typed
 // loosely (lots of optional fields) on purpose: this is an unofficial,
-// reverse-engineered endpoint, not a documented/versioned Google API, so
-// it can add, rename, or drop fields without warning. Every read below
-// uses optional chaining and a fallback for exactly that reason — a
-// missing field should degrade a single offer, not crash the whole search.
+// reverse-engineered endpoint, so it can add, rename, or drop fields
+// without warning. Every read below uses optional chaining and a fallback
+// so a missing field degrades a single offer instead of crashing the search.
 type RawAirport = { time?: string };
 type RawFlightSegment = {
   airline?: string;
@@ -44,19 +41,10 @@ type RawResponse = {
   };
 };
 
-// TEMP-DEBUG: the bare-clock-string fix (see BARE_TIME_PATTERN in
-// lib/flights/format.ts) turned out not to be the whole story — after
-// shipping it, a real search still showed "Time TBD" on every card, and
-// this warning never fired even once. That combination only makes sense if
-// segment.departure_airport?.time / arrival_airport?.time are actually
-// undefined (or segment.departure_airport itself is undefined) on the real
-// response, not just a different string format — meaning the field
-// path/name guessed when this provider was first written was never
-// actually confirmed against a live payload (unlike the hotel provider's
-// fields, which did get that check — see HOW-IT-WORKS.md's Day 4 bug
-// sections). warnIfUnexpectedTimeShape stays in case a *format* mismatch
-// shows up later; logRawOfferOnce below is the one doing the real work
-// right now — remove both once a live check confirms the correct field.
+// TEMP-DEBUG: one-time warning if a time value doesn't match any known
+// format. Kept alongside logRawOfferOnce below in case the field this API
+// actually populates for time turns out to differ from what's assumed
+// here — remove both once that's confirmed against production data.
 let loggedUnexpectedTimeShape = false;
 function warnIfUnexpectedTimeShape(time: string | undefined) {
   if (!time || loggedUnexpectedTimeShape || hasTime(time)) return;
@@ -67,13 +55,10 @@ function warnIfUnexpectedTimeShape(time: string | undefined) {
   );
 }
 
-// TEMP-DEBUG: dumps the very first raw offer object from a real response,
-// once per server process, so its exact real shape can be read directly
-// instead of guessed at — same technique that found both hotel-provider
-// bugs in Day 4 (see HOW-IT-WORKS.md). Once a real console log confirms
-// which field actually holds the per-leg time (if any), normalizeOffer
-// below should read from there instead, and this whole block should come
-// out.
+// TEMP-DEBUG: logs the first raw offer once per server process, so its
+// exact shape can be inspected instead of guessed at. Once the field
+// holding per-leg time is confirmed, normalizeOffer should read from
+// there and this block should come out.
 let loggedRawOfferSample = false;
 function logRawOfferOnce(rawOffers: RawOffer[]) {
   if (loggedRawOfferSample || rawOffers.length === 0) return;
@@ -128,13 +113,11 @@ async function fetchFromGoogleFlights(
     throw new Error("RAPIDAPI_GOOGLE_FLIGHTS_KEY is not set");
   }
 
-  // This is always a single one-way leg request — the confirmed Day 3
-  // shape, unchanged. A round trip is handled entirely above this file, as
-  // two separate calls to searchFlights() (outbound leg, then return leg
-  // with `from`/`to` swapped and the return date) — see
-  // components/sections/flight-search-results.tsx and app/flights/page.tsx.
-  // That keeps this provider simple and its request shape fully confirmed,
-  // rather than guessing at an unconfirmed round-trip parameter convention.
+  // Always a single one-way leg request. A round trip is handled above
+  // this file as two separate calls to searchFlights() (outbound, then
+  // return with from/to swapped) — see flight-search-results.tsx and
+  // app/flights/page.tsx. Keeps this provider's request shape simple
+  // rather than guessing at a round-trip parameter convention.
   const query = new URLSearchParams({
     departure_id: params.from,
     arrival_id: params.to,
@@ -151,9 +134,8 @@ async function fetchFromGoogleFlights(
       "x-rapidapi-host": API_HOST,
     },
     // Flight prices shift constantly and this endpoint is rate-limited on
-    // free tiers, but a demo doesn't need per-second freshness — a short
-    // cache means clicking back and forth between two searches during a
-    // walkthrough doesn't burn quota.
+    // free tiers — a short cache avoids burning quota when clicking back
+    // and forth between searches.
     next: { revalidate: 60 },
   });
 
@@ -184,25 +166,15 @@ async function fetchFromGoogleFlights(
   return offers;
 }
 
-// REVERTED (Day 3, revisited, take 2): results are no longer filtered down
-// to nonstop-only — that hid legitimate 1-stop flights with normal,
-// reasonable durations, which was too broad a fix for what turned out to
-// be a data-quality problem, not a stops problem.
-//
-// The actual bug being worked around: some "1 stop" results for a
-// Philippine domestic route (confirmed live) came back with a duration of
-// 22+ hours — nobody books a same-country connection with a full day's
-// layover, so that's this reverse-engineered API returning bad data (most
-// likely mixing in some multi-day/positioning itinerary it shouldn't), not
-// a real flight anyone would pick anyway. `dropUnrealisticDurations` below
-// targets that specific problem instead: it only applies to routes where
-// both airports are Philippine (isDomesticRoute, lib/flights/airports.ts —
-// a real long-haul international flight legitimately takes 12+ hours, so
-// this check would be wrong to apply there), and only drops results over
-// a generous 8-hour cap, well above what even a bad-layover domestic
-// connection should ever take. A missing/zero duration is left alone
-// rather than dropped, since we can't tell if that's bad data or just a
-// field this API didn't populate for that result.
+// Results are not filtered to nonstop-only — that also hid legitimate
+// 1-stop flights with normal durations. The actual problem: some "1 stop"
+// results for Philippine domestic routes come back with a duration of 22+
+// hours, which is bad data from this reverse-engineered API, not a real
+// itinerary. dropUnrealisticDurations targets that instead: it only
+// applies to domestic routes (isDomesticRoute, lib/flights/airports.ts —
+// an international long-haul can legitimately take 12+ hours) and drops
+// anything over a generous 8-hour cap. A missing/zero duration is left
+// alone since it may just be an unpopulated field rather than bad data.
 const MAX_DOMESTIC_DURATION_MINUTES = 8 * 60;
 
 function dropUnrealisticDurations(
@@ -226,8 +198,7 @@ export async function searchFlights(
   } catch (error) {
     console.error("[flights] falling back to sample data:", error);
     // Mock data is synthetic and always well under the domestic duration
-    // cap, so running it through dropUnrealisticDurations would be a no-op
-    // — skipped here rather than calling it just to prove that.
+    // cap, so dropUnrealisticDurations would be a no-op here.
     return { offers: getMockFlightOffers(params), isFallback: true };
   }
 }

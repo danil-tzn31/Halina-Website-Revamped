@@ -4,14 +4,13 @@ import type { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { createBookingSchema } from "@/lib/validators/booking";
 
-// Creates a booking row in PENDING status — the direct replacement for the
-// old site's payment_process.php, minus the "insert straight from $_POST
-// with no validation" part. This intentionally does NOT touch Stripe yet:
-// that's Day 5. Today, "booking" means "reserve it and it shows up in My
-// Bookings as pending" — a real, working step, just not a paid one yet.
-// Prisma is imported dynamically for the same reason as lib/auth.ts: this
-// route only needs the database when it's actually called, not on every
-// page load.
+// Creates a booking row in PENDING status — replaces the old site's
+// payment_process.php, which inserted straight from $_POST with no
+// validation. Payment happens later via Stripe Checkout; this route just
+// reserves the booking so it shows up in My Bookings.
+//
+// Prisma is imported dynamically so the database client only loads when
+// this route is actually called.
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -41,13 +40,9 @@ export async function POST(req: NextRequest) {
       dateFrom: new Date(parsed.data.dateFrom),
       dateTo: new Date(parsed.data.dateTo),
       guests: parsed.data.guests,
-      // `details` comes from validated JSON (z.record(z.string(),
-      // z.unknown()) in lib/validators/booking.ts), so it's already
-      // structurally JSON-safe — it went through req.json() to get here.
-      // TypeScript doesn't know that, though: it won't assign a value
-      // typed `unknown` to Prisma's InputJsonValue on its own, even though
-      // the runtime data is fine. Hence the explicit cast, rather than
-      // trying to redesign the Zod schema around Prisma's JSON type.
+      // `details` is validated JSON (z.record(z.string(), z.unknown()) in
+      // lib/validators/booking.ts) but typed `unknown`, so it needs an
+      // explicit cast to satisfy Prisma's InputJsonValue.
       details: (parsed.data.details ?? {}) as Prisma.InputJsonValue,
     },
   });

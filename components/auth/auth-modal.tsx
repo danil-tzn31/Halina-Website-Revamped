@@ -11,11 +11,9 @@ import { useAuthModal } from "@/lib/auth-modal-context";
 import { LoginForm } from "@/components/auth/login-form";
 import { SignupForm } from "@/components/auth/signup-form";
 
-// The single modal that handles both login and signup — this is the
-// replacement for the old site's separate login.php/register.php pages
-// (and separate loginModal/registerModal markup). One Dialog, one place
-// that owns "is auth open" state (lib/auth-modal-context.tsx), a tab-style
-// toggle inside for switching between the two forms.
+// Single modal for both login and signup — replaces the old site's
+// separate login.php/register.php pages. One Dialog, state owned by
+// lib/auth-modal-context.tsx, with a toggle to switch between forms.
 export function AuthModal() {
   const { isOpen, mode, redirectTo, closeModal, setMode } = useAuthModal();
 

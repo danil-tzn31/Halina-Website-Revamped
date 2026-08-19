@@ -6,47 +6,32 @@ import { checkRateLimit, clearRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Thrown instead of returning `null` when someone (or something) has made
 // too many login attempts too quickly. Extending Auth.js's own
-// CredentialsSignin (rather than a plain Error) is what makes this show up
-// to the client as a real, distinguishable sign-in error — Auth.js reports
-// the `code` below back through `signIn()`'s result, which
-// components/auth/login-form.tsx checks specifically so it can show "too
-// many attempts, try again shortly" instead of the generic "incorrect
-// email or password" it shows for every other failure.
+// CredentialsSignin (rather than a plain Error) surfaces a distinguishable
+// `code` through `signIn()`'s result, which the login form checks to show
+// "too many attempts" instead of the generic invalid-credentials message.
 class RateLimitedSignin extends CredentialsSignin {
   code = "rate-limited";
 }
 
 // Auth.js (NextAuth v5) config. Credentials + JWT sessions — no OAuth, so
 // no database adapter is needed; we read/write the User table ourselves via
-// Prisma inside `authorize`. This is the direct replacement for the old
-// site's login_process.php, minus the SQL string-concatenation and the
-// plaintext password comparison.
+// Prisma inside `authorize`. Direct replacement for the old PHP site's
+// login_process.php, minus the SQL string-concatenation and plaintext
+// password comparison.
 //
-// Note: `prisma` is imported *inside* authorize() below (a dynamic
-// `await import(...)`) rather than at the top of this file. Reason: every
-// route that touches auth — including GET /api/auth/session, which
-// SessionProvider calls on every single page load and never needs the
-// database for — goes through this file. A static top-level
-// `import { prisma } from "@/lib/prisma"` means if the Prisma Client
-// fails to initialize for *any* reason (wrong DATABASE_URL, engine not
-// generated yet, etc.), it takes the *entire* auth module down with it —
-// including the session check nobody was even trying to use the database
-// for. That's exactly what was causing the "ClientFetchError: The string
-// did not match the expected pattern" error: /api/auth/session was
-// crashing with a 500 HTML error page instead of returning JSON, and the
-// browser's `res.json()` call on that HTML choked (Safari's specific
-// wording for "this wasn't valid JSON"; Chrome would say "Unexpected
-// token '<'" for the same thing). Deferring the import to inside
-// authorize() means a broken Prisma setup only breaks the actual login
-// attempt, not every page load.
+// `prisma` is imported *inside* authorize() (a dynamic import) rather than
+// at the top of the file. Every auth route, including the session check
+// that SessionProvider calls on every page load, goes through this file —
+// a static top-level import would take the whole module down if Prisma
+// fails to initialize (bad DATABASE_URL, engine not generated, etc.),
+// crashing session checks that never touch the database. Deferring the
+// import means a broken Prisma setup only breaks an actual login attempt.
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   pages: {
-    // There's no dedicated /login page in this app (login is a modal), so
-    // if Auth.js ever needs to redirect to a sign-in page (e.g. a protected
-    // route accessed while signed out), send it to the homepage instead.
-    // proxy.ts appends ?auth=login&next=... so the homepage knows to open
-    // the modal automatically.
+    // Login is a modal, not a page — send Auth.js's sign-in redirect to the
+    // homepage instead. proxy.ts appends ?auth=login&next=... so the
+    // homepage knows to open the modal automatically.
     signIn: "/",
   },
   providers: [
@@ -60,15 +45,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = credentials?.password as string | undefined;
         if (!email || !password) return null;
 
-        // Two separate limits, because they stop two different shapes of
-        // abuse. The email-keyed one is tight (5 tries / 15 minutes) and
-        // stops someone brute-forcing one specific known account. The
-        // IP-keyed one is looser (20 tries / 15 minutes) and catches what
-        // the email limit alone would miss: someone cycling through many
-        // *different* email addresses from the same place, where each
-        // email gets its own fresh bucket. Either one tripping blocks the
-        // attempt, and this check runs before touching the database at
-        // all, so a blocked attempt costs nothing but a Map lookup.
+        // Two separate limits: email-keyed (5/15min) stops brute-forcing one
+        // account; IP-keyed (20/15min) catches someone cycling through many
+        // different emails from the same place. Either tripping blocks the
+        // attempt, checked before touching the database.
         const emailKey = `login:email:${email.toLowerCase()}`;
         const ipKey = `login:ip:${getClientIp(request)}`;
         const emailLimit = checkRateLimit(emailKey, { max: 5, windowMs: 15 * 60 * 1000 });
@@ -87,11 +67,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
         if (!validPassword) return null;
 
-        // A correct password proves this really is the account owner —
-        // clear their email-specific bucket so a few earlier typos don't
-        // eat into their next login attempt later today. The IP bucket is
-        // left alone on purpose: it's tracking overall activity from one
-        // place, not tied to whether any single login happened to succeed.
+        // Clear the email bucket on success so earlier typos don't eat into
+        // a later attempt. The IP bucket is left alone — it tracks overall
+        // activity from one place, not whether a login succeeded.
         clearRateLimit(emailKey);
 
         return {
@@ -104,16 +82,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    // Carry the user id (and, as of the admin dashboard, the isAdmin flag)
-    // onto the JWT, then onto the session, so server components/route
-    // handlers can read session.user.id/isAdmin directly instead of looking
-    // the user up by email every time. Both only get set here when `user`
-    // is present, which Auth.js only passes in on the initial sign-in call
-    // to authorize() above — meaning a session created before you flip
-    // isAdmin on in the database keeps carrying the old `false` until you
-    // sign out and back in. That's expected, not a bug: a JWT session is a
-    // signed snapshot taken at login time, not a live database read on
-    // every request, so it can't "notice" a database change on its own.
+    // Carry user id and isAdmin onto the JWT, then the session, so server
+    // components/route handlers can read session.user.id/isAdmin directly
+    // instead of looking the user up by email each time. `user` is only
+    // present on the initial sign-in, so a session created before isAdmin
+    // is flipped on in the database keeps the old value until the user
+    // signs out and back in — a JWT session is a snapshot from login time,
+    // not a live database read, so it can't pick up the change on its own.
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;

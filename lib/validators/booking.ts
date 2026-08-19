@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-// What the booking modal sends to POST /api/bookings. Kept generic (FLIGHT
-// today, HOTEL once Day 4's provider exists) so the same route and schema
-// serve both instead of duplicating this for hotels later.
+// What the booking modal sends to POST /api/bookings. Kept generic
+// (FLIGHT/HOTEL) so one route and schema serve both instead of
+// duplicating this per booking type.
 export const createBookingSchema = z.object({
   type: z.enum(["FLIGHT", "HOTEL"]),
   name: z.string().min(1),

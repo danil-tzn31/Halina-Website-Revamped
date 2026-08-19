@@ -10,9 +10,8 @@ import type { HotelOffer } from "@/lib/hotels/types";
 type FetchedResult = { key: string; offers: HotelOffer[]; isFallback: boolean };
 type FetchedError = { key: string; message: string };
 
-// The hotels counterpart to FlightSearchResults — same fetch/derive-loading
-// pattern, see that file's comments for why `loading` isn't its own piece
-// of state.
+// Hotels counterpart to FlightSearchResults — same fetch/derive-loading
+// pattern.
 export function HotelSearchResults({
   destination,
   checkIn,
@@ -93,14 +92,9 @@ export function HotelSearchResults({
 
       <div className="mt-6">
         {loading && (
-          // Mobile padding is calc(50vw - 130px) — half the viewport width
-          // minus half the 260px card width — so the first card sits
-          // centered on screen right away instead of flush left with the
-          // next one just peeking in. snap-center on each card (below)
-          // keeps that same centered framing while swiping. This trades
-          // away the "next card peeking in" affordance a flush-left layout
-          // gave for free — deliberate, after feedback asked specifically
-          // for centering.
+          // Mobile padding is calc(50vw - 130px) so the first card sits
+          // centered instead of flush left. snap-center keeps that framing
+          // while swiping.
           <div className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-[calc(50vw-130px)] pb-2 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="min-w-[260px] snap-center sm:min-w-0">
@@ -116,14 +110,9 @@ export function HotelSearchResults({
           </p>
         )}
         {!loading && offers && offers.length > 0 && (
-          // Mobile padding is calc(50vw - 130px) — half the viewport width
-          // minus half the 260px card width — so the first card sits
-          // centered on screen right away instead of flush left with the
-          // next one just peeking in. snap-center on each card (below)
-          // keeps that same centered framing while swiping. This trades
-          // away the "next card peeking in" affordance a flush-left layout
-          // gave for free — deliberate, after feedback asked specifically
-          // for centering.
+          // Mobile padding is calc(50vw - 130px) so the first card sits
+          // centered instead of flush left. snap-center keeps that framing
+          // while swiping.
           <div className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-[calc(50vw-130px)] pb-2 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">
             {offers.slice(0, 8).map((offer) => (
               <div key={offer.id} className="min-w-[260px] snap-center sm:min-w-0">

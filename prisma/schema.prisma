@@ -1,10 +1,6 @@
 // Halina Travel — database schema
-// After you have a real Postgres connection string (from Neon or Supabase),
-// put it in .env.local as DATABASE_URL, then run:
+// Set DATABASE_URL in .env.local (Neon/Supabase Postgres), then run:
 //   npx prisma migrate dev --name init
-// (Run that on your own machine/terminal, not inside the Cowork sandbox —
-// Prisma needs to download a small engine binary the first time, which needs
-// normal internet access.)
 
 generator client {
   provider = "prisma-client-js"
@@ -23,12 +19,8 @@ model User {
   firstName    String
   lastName     String
   phone        String?
-  // Defaults to false for every account, including ones that already
-  // exist — there's no signup flow that ever sets this to true (see
-  // section 32 in the plan doc for why: this is a single-user portfolio
-  // project, not a real product with a role-management UI), so the only
-  // way to become an admin is flipping this by hand in Prisma Studio after
-  // running the migration that adds this column.
+  // No signup flow sets this to true — promote a user to admin by hand
+  // in Prisma Studio.
   isAdmin      Boolean   @default(false)
   createdAt    DateTime  @default(now())
   bookings     Booking[]
@@ -45,11 +37,9 @@ enum BookingStatus {
   CANCELLED
 }
 
-// One table for both flight and hotel bookings (the old app used two
-// separate tables — FLIGHTS_BOOKINGS and HOTELS_BOOKINGS — for the same
-// shape of data). `type` tells you which kind of booking it is, and
-// `details` holds the fields that only apply to one type (e.g. flight
-// number, departure time), so we don't need a second table.
+// One table for both flight and hotel bookings (the old app used separate
+// FLIGHTS_BOOKINGS/HOTELS_BOOKINGS tables). `type` distinguishes the kind,
+// `details` holds the type-specific fields (flight number, departure time, etc).
 model Booking {
   id              String        @id @default(cuid())
   user            User          @relation(fields: [userId], references: [id])

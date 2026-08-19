@@ -20,14 +20,10 @@ export const flightSearchSchema = z.object({
     .trim()
     .toUpperCase()
     .regex(/^[A-Z]{3}$/, "Use a 3-letter airport code, e.g. CEB."),
-  // The past-date check here is a backup, not the primary defense — the
-  // search bar itself (search-bar.tsx) already stops you from picking a
-  // bad date via its `min` attribute and a live warning caption. This
-  // catches everything that UI can't: a bookmarked or shared link built
-  // from an old search, or a direct call to /api/flights/search. Today
-  // itself is rejected too, not just genuinely past dates — see
-  // search-bar.tsx's comment on why this is stricter than a typical real
-  // booking site for this project specifically.
+  // Backup, not the primary defense — the search bar's own `min` date and
+  // warning caption already stop a bad pick in the UI. This catches a
+  // bookmarked/shared link or a direct API call. Today itself is rejected
+  // too, not just past dates (see search-bar.tsx).
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a YYYY-MM-DD date.")

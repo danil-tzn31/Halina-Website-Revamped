@@ -3,16 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getStripe, toStripeAmount } from "@/lib/stripe";
 
-// Sits between "Confirm booking" (POST /api/bookings, which already exists
-// and creates a PENDING row) and the booking actually being marked PAID.
-// This route's only job is: given a booking that already exists and
-// belongs to the caller, create a Stripe-hosted Checkout Session for it and
-// hand back the URL to redirect the browser to. The actual "mark it paid"
-// step happens later, asynchronously, in app/api/stripe/webhook/route.ts —
-// this route never marks anything paid itself, since a client-side
-// redirect happening doesn't mean the payment actually succeeded (someone
-// could close the tab, decline the card, etc.). See that file's comment
-// for why the webhook is the only source of truth for payment status.
+// Given a booking that already exists and belongs to the caller, creates a
+// Stripe Checkout Session and returns the redirect URL. Never marks the
+// booking paid — a successful redirect doesn't guarantee the payment
+// cleared. See app/api/stripe/webhook/route.ts for that step.
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -82,10 +76,9 @@ export async function POST(req: NextRequest) {
     // find its way back to this exact booking row — see that file.
     metadata: { bookingId: booking.id },
     success_url: `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
-    // Routed through /api/checkout/cancel (not straight to /account/bookings)
-    // so backing out of payment actually marks this booking CANCELLED
-    // instead of leaving it sitting there PENDING forever — see that
-    // route's comment for the full reasoning.
+    // Routed through /api/checkout/cancel, not straight to /account/bookings,
+    // so backing out marks the booking CANCELLED instead of leaving it
+    // PENDING forever.
     cancel_url: `${origin}/api/checkout/cancel?bookingId=${booking.id}`,
   });
 

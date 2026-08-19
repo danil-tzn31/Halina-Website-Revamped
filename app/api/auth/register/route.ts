@@ -5,18 +5,13 @@ import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validators/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
-// This is the direct replacement for the old register_process.php — same
-// job (create a user), but every problem in the original is fixed here:
-// passwords are hashed (never stored as plaintext), the query is a Prisma
-// call (not a string-concatenated SQL statement), and input is validated
-// with Zod before touching the database at all.
+// Replaces the old register_process.php: passwords are hashed instead of
+// stored as plaintext, the query is a Prisma call instead of concatenated
+// SQL, and input is validated with Zod before it touches the database.
 export async function POST(request: Request) {
-  // Capped per IP rather than per email/username — those don't exist yet
-  // at this point (that's what this route is about to create), so IP is
-  // the only thing available to key on. 5 accounts per hour from one place
-  // is generous for a real visitor signing up themselves, but blocks a
-  // script from spinning up accounts in bulk. See lib/rate-limit.ts for
-  // this limiter's real-world caveats (in-memory, single-instance).
+  // Capped per IP since email/username don't exist yet at this point.
+  // 5/hour is generous for a real signup, tight enough to block bulk
+  // account creation.
   const ipLimit = checkRateLimit(`register:ip:${getClientIp(request)}`, {
     max: 5,
     windowMs: 60 * 60 * 1000,

@@ -2,10 +2,8 @@
 
 import { createContext, useContext, useState, type ReactNode } from "react";
 
-// Login/signup are a modal, not pages (that was the point — fewer routes).
-// This context is how any component (the navbar's "Log in" button, or a
-// protected-page redirect) can ask that modal to open, from anywhere in
-// the tree, without prop-drilling.
+// Login/signup are a modal, not pages. This context lets any component
+// (navbar, a protected-page redirect) open that modal without prop-drilling.
 type AuthMode = "login" | "signup";
 
 interface AuthModalContextValue {

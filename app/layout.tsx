@@ -11,14 +11,10 @@ import { HERO_PHOTO_OG_URL } from "@/lib/photos";
 
 // PP Neue Montreal, loaded locally via next/font/local — no network call at
 // build time (unlike next/font/google), and Next.js self-hosts + preloads
-// these files automatically. The design direction still leans on size,
-// spacing, and italics for hierarchy rather than bold weights generally —
-// Semibold (600) is the one deliberate exception, loaded here specifically
-// for the "Halina" wordmark (navbar and Preloader — see their own comments)
-// since a short, never-italicized wordmark is about as safe a place as any
-// to use it, with no synthetic-bold or synthetic-italic risk. There's no
-// SemiboldItalic file, on purpose — nothing in this codebase italicizes it.
-// Extrabold stays excluded; nothing has earned that weight yet.
+// these files automatically. Hierarchy mostly comes from size/spacing/
+// italics, not bold weight — Semibold (600) is the one exception, reserved
+// for the "Halina" wordmark (navbar, Preloader). No SemiboldItalic since
+// nothing italicizes the wordmark; Extrabold is unused.
 const neueMontreal = localFont({
   variable: "--font-neue-montreal",
   display: "swap",
@@ -74,12 +70,9 @@ const neueMontreal = localFont({
 const SITE_DESCRIPTION =
   "Flights, hotels, and destinations across the Philippines.";
 
-// openGraph/twitter images are what a link preview (Slack, LinkedIn,
-// iMessage, a resume link) actually shows — without these, sharing the
-// live URL previously showed nothing but bare text. Reuses the hero photo
-// (see lib/photos.ts) at the standard 1200x630 social-card crop rather
-// than sourcing a separate image, so the preview matches what a visitor
-// actually sees the moment the page itself loads.
+// openGraph/twitter images control link previews (Slack, iMessage, etc.).
+// Reuses the hero photo (lib/photos.ts) at the standard 1200x630 crop
+// rather than sourcing a separate image.
 export const metadata: Metadata = {
   title: "Halina Travel",
   description: SITE_DESCRIPTION,
@@ -110,26 +103,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${neueMontreal.variable} h-full antialiased`}
     >
-      {/* suppressHydrationWarning here is specifically to quiet false-positive
-          warnings from browser extensions (Grammarly, password managers, etc.)
-          that inject attributes into <body> before React hydrates. It does
-          NOT hide real hydration bugs elsewhere in the app — those still show
-          up as errors on the specific component that caused them. */}
+      {/* Quiets false-positive hydration warnings from browser extensions
+          (Grammarly, password managers) that inject attributes into <body>
+          before React hydrates. Doesn't mask real hydration bugs elsewhere. */}
       <body
         className="min-h-full flex flex-col font-sans"
         suppressHydrationWarning
       >
         <Providers>
           <Preloader />
-          {/* Mounted once, globally — see that component's comment for why
-              this needs to be present on every page rather than just the
-              booking modals themselves. */}
+          {/* Mounted globally so it's active on every page, not just the
+              booking modals. */}
           <CheckoutAbandonWatcher />
-          {/* The trip finder's floating bubble button (section 43 — merges
-              what used to be two separate features, the destination quiz
-              and the AI trip search) — mounted once, globally, same
-              reasoning as CheckoutAbandonWatcher above, so it's reachable
-              from every page. See its own comment for the full history. */}
+          {/* Trip finder's floating bubble button — mounted globally, same
+              reasoning as CheckoutAbandonWatcher above. */}
           <TripFinderModal />
           <PageTransition>{children}</PageTransition>
         </Providers>

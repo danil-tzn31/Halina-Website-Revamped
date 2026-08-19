@@ -5,23 +5,12 @@ import { ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-// Rebuilt as a fully custom button + listbox, not a restyled native
-// <select> — a real <select>'s closed-state text rendering (padding,
-// alignment, and the space it internally reserves for its own dropdown
-// arrow) isn't handled identically across browsers, and a custom chevron
-// layered on top of it via `appearance-none` + absolute positioning can't
-// be reliably kept clear of the text once that happens: this exact setup
-// showed "Recommended" overlapping the chevron in Safari while looking
-// correct in Chrome. Rather than chase the precise cause of one browser's
-// internal <select> box model, this mirrors the fix already proven out
-// twice elsewhere in this codebase for the identical category of bug — the
-// search bar's airport fields (AirportField, in search-bar.tsx) replaced a
-// native <datalist> the same way, for the same reason: once a native
-// control's own rendering is the inconsistency, the durable fix is to stop
-// relying on it visually and draw the control ourselves. Kept generic (typed
-// on a string union via the caller) so both the flight and hotel results
-// grids can each pass their own set of sort options through the same
-// component instead of duplicating this markup twice.
+// Custom button + listbox instead of a restyled native <select> — a native
+// select's closed-state text rendering isn't consistent across browsers;
+// this setup showed "Recommended" overlapping the chevron in Safari.
+// Same approach as AirportField (search-bar.tsx) for the same reason.
+// Generic over the option type so both flight and hotel result grids can
+// share it.
 export function SortSelect<T extends string>({
   value,
   onChange,
@@ -34,9 +23,7 @@ export function SortSelect<T extends string>({
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Same outside-click-closes pattern as AirportField, for the same reason:
-  // a dropdown that only closes on selection would still be open if someone
-  // clicks elsewhere on the page instead.
+  // Closes on outside click, same pattern as AirportField.
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {

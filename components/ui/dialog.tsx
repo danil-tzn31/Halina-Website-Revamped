@@ -6,9 +6,8 @@ import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-// Standard shadcn/ui Dialog, hand-added for the same reason as Button (see
-// components/ui/button.tsx) — the shadcn CLI can't reach its server from
-// the sandbox this was built in.
+// Manually adapted from the shadcn/ui Dialog pattern, same as Button (see
+// components/ui/button.tsx).
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
 const DialogPortal = DialogPrimitive.Portal;

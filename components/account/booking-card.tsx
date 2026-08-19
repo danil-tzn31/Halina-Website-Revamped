@@ -5,19 +5,13 @@ import { BoardingPassTrigger } from "@/components/account/boarding-pass-trigger"
 import type { BoardingPassData } from "@/components/booking/boarding-pass-card";
 import { formatDateLabel } from "@/lib/flights/format";
 
-// One card per booking, deliberately built to look like a smaller sibling
-// of FlightResultCard / the hotel result cards (border border-line,
-// bg-paper-raised, h-full + flex-col + mt-auto footer for row alignment —
-// see components/sections/flight-result-card.tsx's comment for why that
-// combination matters) rather than a new visual language. The idea is that
-// a booking should look recognizably like "the search result you picked,"
-// just with a status badge and a receipt-style footer instead of a "Tap
-// for details" prompt.
+// Styled to match FlightResultCard / the hotel result cards (border,
+// raised background, footer pinned via mt-auto) so a booking reads as
+// "the search result you picked," with a status badge and receipt-style
+// footer instead of a "Tap for details" prompt.
 //
-// This is a Server Component — same reasoning as BookingPrice's own
-// comment: only the price actually needs useCurrency() (a Client-only
-// hook), so only that one span is pulled out into a Client Component
-// rather than converting this whole card.
+// Server Component — only BookingPrice needs the client-only useCurrency
+// hook, so that's the only piece pulled out.
 export type BookingCardData = {
   id: string;
   name: string;
@@ -29,21 +23,15 @@ export type BookingCardData = {
   dateTo: string;
   guests: number;
   details: unknown;
-  // Precomputed by app/account/bookings/page.tsx via the same
-  // lib/flights/boarding-pass.ts helper /booking/success uses — null for
-  // every booking that isn't a PAID flight with a cleanly-parsed route.
-  // Computed there rather than inside this component because building it
-  // needs the signed-in user's name (from the page's own `auth()` call),
-  // which this card has no reason to fetch itself.
+  // Precomputed in app/account/bookings/page.tsx (needs the signed-in
+  // user's name); null unless the booking is a PAID flight with a
+  // cleanly-parsed route. See lib/flights/boarding-pass.ts.
   boardingPass: BoardingPassData | null;
 };
 
-// `details` is a loosely-typed Prisma Json? column (see prisma/schema.prisma's
-// comment on Booking.details) — it's whatever shape the modal that created
-// the booking put there (flight-detail-modal.tsx or hotel-detail-modal.tsx),
-// never guaranteed at the type level. Every field read from it below is
-// optional-chained with a fallback for exactly that reason: a malformed or
-// missing details blob should degrade to a plainer card, not crash the page.
+// `details` is a loosely-typed Prisma Json? column, shaped by whichever
+// modal created the booking. Every field below is optional-chained so a
+// malformed or missing blob degrades gracefully instead of crashing.
 type FlightDetails = {
   tripType?: "one_way" | "round_trip";
   outbound?: { airline?: string; flightNumber?: string; stops?: number };
@@ -113,10 +101,7 @@ export function BookingCard({ booking }: { booking: BookingCardData }) {
             <BookingPrice amount={booking.price} currency={booking.currency} />
           </span>
         </div>
-        {/* Only a PAID flight booking whose route parsed cleanly ever gets
-            a boardingPass — see lib/flights/boarding-pass.ts. Its own
-            top border reads as a second divider, separating this action
-            from the price row above it rather than crowding into it. */}
+        {/* Only PAID flights with a cleanly-parsed route get a boardingPass. */}
         {booking.boardingPass && <BoardingPassTrigger boardingPass={booking.boardingPass} />}
       </div>
     </div>
@@ -145,17 +130,12 @@ function FlightSummary({ details }: { details: FlightDetails }) {
   );
 }
 
-// Small uppercase pill, same rounded-full treatment already used for the
-// icon circles in flight-result-card.tsx / flight-detail-modal.tsx — the
-// one rounded shape in an otherwise sharp-cornered design language, so it
-// reads as consistent with those rather than introducing a new shape.
-// CANCELLED is included for completeness even though the page query
-// filters those rows out (see app/account/bookings/page.tsx) — this
-// component shouldn't assume that filtering will always be in place.
+// Small uppercase pill; rounded-full matches the icon circles used
+// elsewhere. CANCELLED is included even though the page query filters
+// those rows out — don't assume that filtering stays in place.
 //
-// Exported (not just used locally) because AdminBookingsTable (section 32)
-// reuses this exact same pill next to its own status dropdown, rather than
-// keeping a second copy of the same three-color mapping.
+// Exported since AdminBookingsTable reuses this same pill for its status
+// dropdown.
 export function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     PAID: "bg-teal/15 text-teal",

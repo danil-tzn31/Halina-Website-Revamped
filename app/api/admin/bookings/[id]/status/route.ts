@@ -3,13 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { updateBookingStatusSchema } from "@/lib/validators/admin";
 
-// The one mutating action anywhere on the admin dashboard — everything
-// else there (app/account/admin/page.tsx) is a read-only Prisma fetch.
-// Gated the same way every other route in this app is: the admin nav
-// link and the page's own redirect (see AdminPage) are just UX, not
-// security, so this route re-checks session.user.isAdmin itself before
-// touching the database — never trust that only an admin could have
-// reached this URL just because the UI hid the button from everyone else.
+// Only mutating route on the admin dashboard. The nav link and page
+// redirect are UX, not security — re-check session.user.isAdmin here
+// before touching the database.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

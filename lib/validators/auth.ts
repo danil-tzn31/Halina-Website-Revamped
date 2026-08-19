@@ -10,18 +10,11 @@ export const loginSchema = z.object({
 });
 
 // The actual password rules, defined once as small testable functions
-// rather than baked directly into a regex inside the Zod schema below.
-// components/auth/signup-form.tsx imports this same array to render a live
-// checklist under the password field ("✓ One uppercase letter" ticking on
-// as you type) — reusing the exact same `test` functions the server
-// enforces means the checklist can never quietly drift out of sync with
-// what's actually required, the same reasoning behind this project's other
-// shared-logic modules (lib/flights/sort.ts, lib/date-utils.ts). Chosen
-// deliberately as a "medium" strength bar — length plus a mix of letter
-// cases and a number — rather than also demanding a special character:
-// it's a meaningful step up from the old plain 8-character minimum without
-// being the kind of password rule that makes people annoyed enough to
-// write it on a sticky note, which doesn't actually make a demo app safer.
+// rather than baked into a regex inside the Zod schema below.
+// signup-form.tsx imports this same array to render a live checklist
+// under the password field, so it can't drift out of sync with what the
+// server enforces. Medium strength bar — length plus mixed case and a
+// number — without requiring a special character.
 export const passwordRequirements = [
   {
     key: "length",
@@ -62,11 +55,9 @@ export const registerSchema = z
       ),
     email: z.string().email("Enter a valid email address."),
     phone: z.string().optional(),
-    // The message here is intentionally generic — the signup form never
-    // actually shows it, since the live checklist below the field already
-    // explains exactly which requirement is missing. This one only
-    // surfaces if someone bypasses the UI entirely and calls
-    // /api/auth/register directly with a weak password.
+    // Generic message on purpose — the live checklist below the field
+    // already explains which requirement is missing. Only surfaces if
+    // /api/auth/register is called directly, bypassing the UI.
     password: z
       .string()
       .refine(meetsPasswordRequirements, "Password doesn't meet the requirements below."),

@@ -10,8 +10,8 @@ import { SearchBar } from "@/components/sections/search-bar";
 import { hotelSearchSchema, type HotelSearchInput } from "@/lib/validators/hotel-search";
 import { searchHotels } from "@/lib/hotels/tripadvisor-provider";
 
-// The "Show all results" destination for hotel search, mirroring
-// app/flights/page.tsx exactly.
+// Full-results destination for hotel search, mirroring
+// app/flights/page.tsx.
 export default async function HotelsPage({
   searchParams,
 }: {
@@ -29,15 +29,14 @@ export default async function HotelsPage({
     <div className="flex min-h-screen flex-col">
       <Navbar variant="solid" />
 
-      {/* See app/flights/page.tsx's identical comment — pt-[104px] reserves
-          the space the now-floating, fixed-position Navbar needs. */}
+      {/* pt-[104px] reserves the space the fixed-position Navbar needs —
+          see app/flights/page.tsx. */}
       <main className="mx-auto w-full max-w-[1180px] flex-1 px-6 pb-14 pt-[104px] sm:px-10">
-        {/* See app/flights/page.tsx's identical comment — ResultsPageShell
-            lets the search bar and the results area below share one "is a
-            search currently running" flag (results-transition.tsx). */}
+        {/* ResultsPageShell lets the search bar and results area share one
+            "search running" flag — see results-transition.tsx. */}
         <ResultsPageShell>
-          {/* mode="results" — see app/flights/page.tsx's identical comment
-              and search-bar.tsx's `mode` prop for the full reasoning. */}
+          {/* mode="results" — see app/flights/page.tsx and
+              search-bar.tsx's `mode` prop. */}
           <SearchBar
             mode="results"
             initialTab="hotels"
@@ -54,12 +53,9 @@ export default async function HotelsPage({
               try again.
             </p>
           ) : (
-            // See app/flights/page.tsx's identical comment: <Suspense>
-            // covers the first render of this content, <ResultsPending>
-            // covers every later re-search from the inline search bar on
-            // this same page — two different loading states doing two
-            // different jobs, see results-transition.tsx for why both are
-            // needed.
+            // Same split as app/flights/page.tsx: <Suspense> covers the
+            // first render, <ResultsPending> covers re-searches from the
+            // inline search bar — see results-transition.tsx.
             <ResultsPending
               skeleton={<ResultsPageSkeleton CardSkeleton={HotelResultCardSkeleton} />}
             >

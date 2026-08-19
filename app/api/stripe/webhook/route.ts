@@ -3,20 +3,15 @@ import Stripe from "stripe";
 
 import { getStripe } from "@/lib/stripe";
 
-// This is the *only* place a booking actually gets marked PAID — never
-// app/api/checkout/route.ts, and never anything running in the browser.
-// The reason: a successful redirect back to /booking/success only proves
-// the browser was sent there, not that the payment actually cleared (a
-// card could still get declined after 3D Secure, a user could forge a
-// visit to that URL directly, etc.). Stripe's webhook is a server-to-server
-// call Stripe makes directly to us after it has actually confirmed the
-// charge, which is why it's the trustworthy source of truth for "did this
-// really get paid" — this mirrors the real reason production payment
-// integrations always work this way, not just a Stripe-specific quirk.
+// The only place a booking gets marked PAID — never checkout/route.ts,
+// never the browser. A redirect to /booking/success only proves the
+// browser got there, not that the charge cleared (declined card after
+// 3DS, forged visit to the URL, etc). Stripe's webhook is a
+// server-to-server call made only after the charge is confirmed, so it's
+// the actual source of truth.
 //
-// Runs on the default Node.js runtime (not Edge) — nothing here opts into
-// Edge, and Stripe's SDK needs Node's crypto module for signature
-// verification below.
+// Runs on the default Node.js runtime — Stripe's SDK needs Node's crypto
+// module for the signature verification below.
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -51,11 +46,9 @@ export async function POST(req: NextRequest) {
 
     if (bookingId) {
       const { prisma } = await import("@/lib/prisma");
-      // Only ever moves PENDING -> PAID. A booking that's already PAID
-      // (Stripe can and does redeliver the same event more than once — its
-      // own docs say to handle events idempotently) or CANCELLED just
-      // no-ops here rather than risk overwriting a status some other event
-      // already set correctly.
+      // Only ever moves PENDING -> PAID. Stripe redelivers events, so an
+      // already-PAID or CANCELLED booking just no-ops instead of risking
+      // an overwrite.
       await prisma.booking.updateMany({
         where: { id: bookingId, status: "PENDING" },
         data: { status: "PAID", stripeSessionId: checkoutSession.id },

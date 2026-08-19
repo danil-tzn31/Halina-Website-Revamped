@@ -6,16 +6,12 @@ import {
   type CurrencyCode,
 } from "@/lib/currency/config";
 
-// A small server-side proxy, same reasoning as
-// app/api/flights/search/route.ts and app/api/hotels/search/route.ts: the
-// browser never calls the third-party API directly, this route does it and
-// hands back only the shape the UI actually needs.
+// Small server-side proxy, same reasoning as flights/search and
+// hotels/search: the browser never calls the third-party API directly.
 //
-// open.er-api.com was picked specifically because it needs no API key at
-// all (nothing to leak, nothing to put in .env.local) and its free tier
-// covers all five of this site's supported currencies, including PHP and
-// KRW — a lot of "free forex API" options only cover major currencies and
-// quietly drop smaller ones.
+// open.er-api.com needs no API key and its free tier covers all five
+// supported currencies, including PHP and KRW — many free forex APIs only
+// cover major currencies.
 const RATES_API_URL = "https://open.er-api.com/v6/latest/USD";
 
 type RatesResponse = {

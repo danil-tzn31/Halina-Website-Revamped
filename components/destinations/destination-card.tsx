@@ -4,19 +4,11 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { Destination } from "@/lib/destinations/data";
 
-// Image-only card, replacing the old "photo + separate text block below it"
-// layout. Name/region/blurb now live in an overlay on top of the photo
-// itself rather than in their own space beneath it — shown on hover for
-// devices that actually have a hover state (a mouse), and shown by default
-// on touch devices, since a touch screen has no hover to reveal it with in
-// the first place. Without that fallback, every card on a phone would show
-// nothing but an unlabeled photo — a real usability regression the design
-// request didn't ask for, so it's handled here via a `(hover: hover)`
-// media-feature check rather than skipped.
+// Name/region/blurb sit in an overlay on top of the photo. Shown by default
+// on touch devices (no hover to reveal it otherwise), hidden until hover on
+// devices that have one, via a `(hover: hover)` media check.
 //
-// Shared by the homepage's featured-destinations grid and the /destinations
-// "see all" page (see destination-grid.tsx for the bento span pattern both
-// of those use) — one card, one place its look is defined.
+// Shared by the homepage's featured grid and the /destinations page.
 export function DestinationCard({
   destination,
   className,
@@ -48,11 +40,8 @@ export function DestinationCard({
       <div
         className={cn(
           "absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-ink/90 via-ink/25 to-transparent p-5",
-          // Default (no real hover — touch devices): overlay always shown,
-          // so a destination's name is never hidden with no way to reveal
-          // it. Hover-capable devices (an actual mouse) get the literal
-          // "just the image, text appears on hover" behavior that was
-          // asked for: opacity-0 at rest, opacity-100 on :hover.
+          // Touch devices: overlay always visible. Hover-capable devices:
+          // hidden until hover.
           "opacity-100 transition-opacity duration-300",
           "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100",
         )}

@@ -3,11 +3,10 @@
 # pre-deploy-check.sh — run this before every push you're about to deploy.
 #
 # Checks the two things that are cheap to catch locally and expensive to
-# discover from a failed Vercel build: does the code actually compile/lint/
-# build, and are the env vars the app hard-depends on at runtime actually
-# set. It does NOT touch Vercel, Stripe, or your database — see DEPLOY.md
-# for the manual steps this script can't safely automate (production
-# migrations, the Stripe webhook endpoint, promoting your admin account).
+# discover from a failed Vercel build: does the code compile/lint/build,
+# and are the required env vars actually set. Does NOT touch Vercel,
+# Stripe, or the database — production migrations, the Stripe webhook
+# endpoint, and promoting an admin account are still manual steps.
 #
 # Usage: ./scripts/pre-deploy-check.sh
 # Exit code: 0 if everything passed, 1 if anything failed.
@@ -65,11 +64,10 @@ run_check "Lint (eslint)" npx eslint .
 run_check "Production build (next build)" npm run build
 
 # --- 4. Required env vars -------------------------------------------------
-# These four are the ones this app hard-depends on at runtime (see
-# DEPLOY.md section 1 for the full reasoning on why each one is required
-# rather than optional-with-a-fallback). Checked against .env.local first
-# (what Next.js itself reads locally), falling back to whatever's already
-# exported in this shell (covers `vercel env pull`-style workflows too).
+# These four are the ones this app hard-depends on at runtime. Checked
+# against .env.local first (what Next.js itself reads locally), falling
+# back to whatever's already exported in this shell (covers
+# `vercel env pull`-style workflows too).
 REQUIRED_VARS=(DATABASE_URL AUTH_SECRET STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET)
 ENV_FILE=".env.local"
 

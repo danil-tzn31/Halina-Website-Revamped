@@ -4,10 +4,8 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
-// This is the standard shadcn/ui Button, hand-added rather than pulled via
-// `npx shadcn add button` because this sandbox can't reach ui.shadcn.com's
-// CDN. Once you're on your own machine, `npx shadcn add <component>` will
-// work normally and drop new components in here the same way.
+// Manually adapted from the shadcn/ui Button pattern rather than added via
+// the CLI.
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
   {

@@ -1,10 +1,9 @@
 import type { HotelOffer, HotelSearchParams } from "./types";
 
 // Seeded fallback dataset — same reason as lib/flights/mock-data.ts: this
-// specific provider (a TripAdvisor scraper, not an official API) can
-// change shape or rate-limit without warning, so search should degrade to
-// something real-looking rather than a blank page. Photos are hotlinked
-// from Unsplash (same free-license approach as the hero photo).
+// provider isn't an official API and can change shape or rate-limit
+// without warning, so search degrades to something real-looking rather
+// than a blank page. Photos are hotlinked from Unsplash.
 const TEMPLATES: Array<{
   name: string;
   photo: string;

@@ -8,13 +8,8 @@ export type AdminUserRow = {
   bookingCount: number;
 };
 
-// Deliberately read-only — no edit or delete action here. Scoped that way
-// on purpose (see the plan doc's admin dashboard section): a single-user
-// portfolio project doesn't need real user-management UI, and "view who's
-// registered" already covers what an admin dashboard needs to demonstrate.
-// A plain Server Component, unlike AdminBookingsTable — nothing here is
-// interactive, so there's no reason to ship it to the browser as client
-// JavaScript.
+// Read-only by design — no edit/delete actions, just a view of who's
+// registered. Plain Server Component since nothing here is interactive.
 export function AdminUsersTable({ users }: { users: AdminUserRow[] }) {
   if (users.length === 0) {
     return <p className="text-[14px] text-ink-soft">No registered users yet.</p>;

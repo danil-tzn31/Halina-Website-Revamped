@@ -15,26 +15,21 @@ import {
 import { searchFlights } from "@/lib/flights/google-flights-provider";
 import { findAirportLabel } from "@/lib/flights/airports";
 
-// The "Show all results" destination from the homepage carousel. This is a
-// Server Component — it fetches directly via the same provider function
-// the API route uses (no need to round-trip through our own
-// /api/flights/search over HTTP when we're already on the server) and
-// renders the full result set as a grid rather than an 8-item carousel,
-// per the pattern locked in during Day 2.
+// Full-results destination for the homepage carousel's "Show all results"
+// link. Server Component — fetches directly via the same provider
+// function the API route uses, rather than round-tripping through
+// /api/flights/search over HTTP.
 //
-// Round trip is validated separately from the one-way leg (flightSearchSchema
-// only ever describes a single from/to/date/adults search — see
-// lib/flights/types.ts) via tripDetailsSchema, which adds tripType/
-// returnDate on top. When it's a round trip, this fetches BOTH legs
-// server-side — the outbound search and, swapping from/to, the return
-// search — before rendering anything, since there's no reason to make the
-// browser do a second round-trip once the server already has both results.
+// Round trip is validated separately from the one-way leg
+// (flightSearchSchema only describes a single from/to/date/adults search
+// — see lib/flights/types.ts) via tripDetailsSchema, which adds
+// tripType/returnDate. For a round trip, both legs are fetched
+// server-side before rendering, so the browser doesn't need a second
+// round-trip.
 //
-// `searchParams` is a Promise here, not a plain object — Next.js 16 (like
-// 15 before it) made this async on purpose so the framework can decide
-// per-request whether this page needs to opt out of static rendering,
-// instead of every page implicitly becoming dynamic just because
-// `searchParams` exists as a prop.
+// `searchParams` is a Promise — Next.js decides per-request whether this
+// page needs to opt out of static rendering, rather than every page
+// implicitly becoming dynamic just because `searchParams` exists as a prop.
 export default async function FlightsPage({
   searchParams,
 }: {
@@ -57,25 +52,18 @@ export default async function FlightsPage({
     <div className="flex min-h-screen flex-col">
       <Navbar variant="solid" />
 
-      {/* pt-[104px] (rather than the plain py-14 this used before Navbar
-          became a floating, fixed-position header) is exactly how much
-          room the nav now needs reserved above real content on any page
-          that doesn't open on a full-bleed photo — see
-          components/layout/navbar.tsx for why. */}
+      {/* pt-[104px] reserves the space the fixed-position Navbar needs on
+          any page that doesn't open on a full-bleed photo — see
+          components/layout/navbar.tsx. */}
       <main className="mx-auto w-full max-w-[1180px] flex-1 px-6 pb-14 pt-[104px] sm:px-10">
-        {/* ResultsPageShell wraps both the search bar and the results area
-            below so they can share one "is a search currently running"
-            flag — see results-transition.tsx for the full reasoning behind
-            why this needs to be more than just a <Suspense> boundary. */}
+        {/* ResultsPageShell wraps the search bar and results area so they
+            share one "search running" flag — see results-transition.tsx. */}
         <ResultsPageShell>
-          {/* mode="results" instead of the homepage's default "home" mode —
-              submitting this one navigates straight to /flights or /hotels
-              (whichever tab is selected) instead of back through `/`, so you
-              can tweak a search and re-run it without leaving this page. See
-              search-bar.tsx's `mode` prop for the full reasoning. Pre-filled
-              from the current search (when it parsed successfully) so this
-              reads as "your search, editable" rather than a blank form you'd
-              have to refill from scratch. */}
+          {/* mode="results" navigates straight to /flights or /hotels
+              instead of back through `/`, so a search can be tweaked and
+              re-run without leaving this page — see search-bar.tsx's
+              `mode` prop. Pre-filled from the current search when it
+              parsed successfully. */}
           <SearchBar
             mode="results"
             initialTab="flights"
@@ -94,16 +82,12 @@ export default async function FlightsPage({
               try again.
             </p>
           ) : (
-            // Two different loading states doing two different jobs here:
-            // <Suspense> covers the very first time this content renders
-            // (a fresh page load, or arriving here via a link from
-            // elsewhere) — React can only suspend around an async
-            // component, which is exactly why the actual fetch lives in its
-            // own component (FlightResults, below) instead of being awaited
-            // inline in this page. <ResultsPending> covers every *later*
-            // re-search from the inline search bar on this same page — see
-            // results-transition.tsx for why that case needs its own
-            // handling and isn't already covered by the Suspense boundary.
+            // <Suspense> covers the first render (fresh load or incoming
+            // link) — React can only suspend around an async component,
+            // which is why the fetch lives in its own component
+            // (FlightResults, below) rather than being awaited inline.
+            // <ResultsPending> covers re-searches from the inline search
+            // bar on this same page — see results-transition.tsx.
             <ResultsPending
               skeleton={<ResultsPageSkeleton CardSkeleton={FlightResultCardSkeleton} />}
             >

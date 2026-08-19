@@ -4,19 +4,13 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-// Renders nothing when there's only one page (the common case for a small
-// result set, or the homepage carousel which caps at 8 offers — well under
-// one page's worth) — so this can be dropped into a results grid
-// unconditionally without every caller having to check totalPages itself.
+// Renders nothing when there's only one page, so this can be dropped into
+// a results grid unconditionally without callers checking totalPages
+// themselves.
 //
-// Rendered twice per results grid — once above the cards, once below (see
-// flight-results-grid.tsx / hotel-results-grid.tsx / the round-trip
-// picker's ResultsList) — after feedback that reaching the bottom of a
-// long results page with no way back to the top except scrolling by hand
-// was annoying enough to fix properly, not just live with. `className`
-// lets each call site supply its own spacing (a top margin makes sense
-// below the grid; it would just add unwanted gap in a row that already
-// sits above it) without duplicating the rest of this component.
+// Used both above and below the results grid so a long list has a way back
+// to the top without scrolling by hand. `className` lets each call site
+// adjust its own spacing.
 export function PaginationControls({
   page,
   totalPages,

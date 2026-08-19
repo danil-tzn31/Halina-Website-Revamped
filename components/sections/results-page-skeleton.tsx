@@ -2,25 +2,14 @@ import type { ComponentType } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Shown by React's <Suspense> while /flights or /hotels's actual data
-// fetch (the live provider call) is still in flight, so the page never
-// just sits there looking frozen while it waits — the same reasoning
-// behind every other loading state in this app (see HOW-IT-WORKS.md,
-// "Polish pass: symmetrical flight cards, real loading states..."): a
-// shape that already resembles the eventual layout reads as "still
-// working," where a blank gap or a plain "Loading…" line reads as "did
-// this hang?" This matters more here than it did on the homepage carousel,
-// because the results pages' inline search bar (section 21) now lets you
-// re-run a search without leaving the page — every one of those re-searches
-// re-triggers this same live fetch, so this is the loading state you'll
-// actually see most often, not just on first page load.
+// Shown by <Suspense> while /flights or /hotels's live data fetch is in
+// flight. Also what you see on every same-page re-search via the inline
+// search bar, not just first load, so it's worth this shared component
+// rather than a plain "Loading…" line.
 //
-// Generic over which card skeleton to render (`FlightResultCardSkeleton` or
-// `HotelResultCardSkeleton`) so both results pages share this one layout —
-// title line, subtitle line, the sort control's slot, and a grid of
-// card-shaped placeholders — instead of each defining an almost-identical
-// copy, the same DRY reasoning already applied to the sort utilities and
-// the search bar's `mode` prop (section 21).
+// Generic over which card skeleton to render so both results pages share
+// one layout (title, subtitle, sort slot, card grid) instead of near-duplicate
+// copies.
 export function ResultsPageSkeleton({
   CardSkeleton,
   count = 6,

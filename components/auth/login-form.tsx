@@ -35,12 +35,9 @@ export function LoginForm({
     });
 
     if (result?.error) {
-      // `code` is the custom value set on lib/auth.ts's RateLimitedSignin
-      // class — everything else (a wrong password, an unknown email) comes
-      // through as the same generic "CredentialsSignin" error/code pair on
-      // purpose (see that file's comment on why the message shouldn't hint
-      // at which part was wrong), so this is the one case worth telling
-      // apart from a plain wrong password.
+      // `code` is set by lib/auth.ts's RateLimitedSignin; everything else
+      // (wrong password, unknown email) comes back as the same generic
+      // error on purpose, so this is the one case worth distinguishing.
       setServerError(
         result.code === "rate-limited"
           ? "Too many attempts. Wait a few minutes and try again."

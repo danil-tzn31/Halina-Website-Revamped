@@ -4,29 +4,20 @@ import { extractTripPreferences } from "@/lib/ai/trip-search";
 import { aiSearchSchema } from "@/lib/validators/ai-search";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
-// The real feature build on top of Halina-Revamp-Plan.md section 38's
-// confirmed-working Gemini trial — turns a free-text sentence into the
-// same three answers a visitor could otherwise pick by hand in
-// components/destinations/trip-finder-modal.tsx's quick-select buttons,
-// having Gemini extract them from a sentence instead. Also extracts a
-// best-effort date and traveler count (section 42).
+// Turns a free-text query into the same vibe/budget/group answers a
+// visitor could pick by hand via trip-finder-modal.tsx's quick-select
+// buttons, using Gemini to extract them from a sentence. Also pulls out a
+// best-effort date and traveler count.
 //
-// As of section 43, this route hands back the RAW extracted answers
-// (vibe/budget/group/date/travelers), not pre-computed destination
-// matches — matchDestinations() moved to being called client-side, inside
-// trip-finder-modal.tsx, once a visitor has seen and possibly corrected
-// the AI's guess. Computing matches here against an answer the visitor
-// might immediately overwrite would just be wasted work the client throws
-// away — see section 43 in the plan doc for the full reasoning (this used
-// to also do the matching, before the AI's answer became editable).
+// Returns the raw extracted answers rather than pre-computed destination
+// matches — matching happens client-side in trip-finder-modal.tsx once
+// the visitor has seen (and possibly corrected) the AI's guess, so we
+// don't waste a match computation on an answer that's about to change.
 export async function POST(request: Request) {
-  // A public, unauthenticated route calling a metered (though free) third-
-  // party API is worth protecting from being hammered — reuses the exact
-  // same in-memory limiter already built for login/signup (section 31)
-  // rather than inventing a second one. 10 per minute per IP is generous
-  // for a real visitor trying a few phrasings, but blocks a script from
-  // burning through Gemini's daily free-tier quota. See lib/rate-limit.ts
-  // for this limiter's real-world caveats (in-memory, single-instance).
+  // Public, unauthenticated route calling a metered third-party API —
+  // worth rate limiting. Reuses the same in-memory limiter as login/signup.
+  // 10/min/IP is generous for a real visitor, tight enough to stop a
+  // script from burning through Gemini's free-tier quota.
   const ipLimit = checkRateLimit(`ai-search:ip:${getClientIp(request)}`, {
     max: 10,
     windowMs: 60 * 1000,
@@ -49,15 +40,10 @@ export async function POST(request: Request) {
 
   const preferences = await extractTripPreferences(parsed.data.query);
 
-  // null means Gemini failed, timed out, or returned something that
-  // didn't parse into a trustworthy answer — the honest response here is
-  // "couldn't understand that," not a guess dressed up as a real answer.
-  // Returned as a normal 200 (not an error status) since this is an
-  // expected, handled outcome, not something broken — the same "isFallback"
-  // shape already used by the exchange-rates route (section 19). The UI
-  // treats this exactly like a visitor who never typed anything at all:
-  // the quick-select buttons just stay unselected, ready to be clicked by
-  // hand — there's no dead-end error screen for this route to justify.
+  // null means Gemini failed, timed out, or returned something untrustworthy
+  // — return a normal 200 (not an error) since this is an expected, handled
+  // outcome, not a failure. The UI just leaves the quick-select buttons
+  // unselected, same as if the visitor never typed anything.
   if (!preferences) {
     return NextResponse.json({
       understood: false,
@@ -69,10 +55,7 @@ export async function POST(request: Request) {
     });
   }
 
-  // Already validated inside extractTripPreferences (vibe/budget/group are
-  // real enum values or the whole thing would already be null; date/
-  // travelers are range-checked against today's real date) — this route
-  // trusts them as-is and just relays them, rather than re-checking.
+  // Already validated inside extractTripPreferences — trusted as-is here.
   return NextResponse.json({
     understood: true,
     vibe: preferences.vibe,

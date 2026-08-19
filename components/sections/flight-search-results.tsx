@@ -12,15 +12,10 @@ import type { FlightOffer, TripType } from "@/lib/flights/types";
 type FetchedResult = { key: string; offers: FlightOffer[]; isFallback: boolean };
 type FetchedError = { key: string; message: string };
 
-// One leg's fetch-and-derive-state cycle, factored out of the component
-// below so a round trip's outbound and return legs (two independent
-// one-way searches — see RoundTripFlightPicker for why round trips are
-// modeled as two separate searches rather than one combined request)
-// don't need this effect written out twice. `loading` is derived rather
-// than stored as its own setState call for the same react-hooks/
-// set-state-in-effect reason documented in HOW-IT-WORKS.md's Day 3
-// section — every actual setState here happens inside the fetch's own
-// .then()/.catch(), never synchronously in the effect body.
+// One leg's fetch-and-derive-state cycle, factored out so a round trip's
+// outbound and return legs don't need this effect written twice. `loading`
+// is derived instead of its own state — every setState call happens inside
+// the fetch's .then()/.catch(), never synchronously in the effect body.
 function useLegSearch(from: string, to: string, date: string, adults: number) {
   const currentKey = from && to && date ? `${from}|${to}|${date}|${adults}` : null;
   const [result, setResult] = useState<FetchedResult | null>(null);
@@ -63,10 +58,9 @@ function useLegSearch(from: string, to: string, date: string, adults: number) {
   };
 }
 
-// Extracted out of SearchResultsSection so the hotels half (see
-// HotelSearchResults) doesn't have to share one file's worth of generic
-// "which type is this" branching — each search type owns its full
-// fetch-render-modal cycle independently.
+// Split out of SearchResultsSection so each search type owns its full
+// fetch-render-modal cycle independently, rather than branching on type
+// in one shared file.
 export function FlightSearchResults({
   from,
   to,
@@ -84,10 +78,9 @@ export function FlightSearchResults({
 }) {
   const isRoundTrip = tripType === "round_trip" && Boolean(returnDate);
 
-  // Outbound leg is always the plain from->to search. The return leg is
-  // just another one-way search with from/to swapped and the return date
-  // — useLegSearch's own from/to/date guard means it simply doesn't fetch
-  // anything when this isn't actually a round trip (empty strings below).
+  // Return leg is just another one-way search with from/to swapped; passing
+  // empty strings when it's not a round trip means useLegSearch's guard
+  // skips the fetch entirely.
   const outbound = useLegSearch(from, to, date, adults);
   const returnLeg = useLegSearch(
     isRoundTrip ? to : "",
@@ -154,17 +147,10 @@ export function FlightSearchResults({
               </p>
             )}
             {outbound.loading && (
-              // Mobile padding is `calc(50vw - 130px)` (half the viewport
-              // width minus half the 260px card width) instead of a flat
-              // px-6, so the first card sits centered in the screen the
-              // moment this loads, rather than flush against the left
-              // padding with the next card only peeking in on the right.
-              // `snap-center` on each card (below) keeps that same
-              // centered framing as you swipe through the rest, instead of
-              // snapping each one flush left. This does trade away the
-              // "next card peeking in" hint that a flush-left layout gave
-              // for free — a deliberate choice after feedback asked
-              // specifically for centering, not a side effect.
+              // Mobile padding is calc(50vw - 130px) — half viewport minus
+              // half the 260px card — so the first card sits centered
+              // instead of flush left. snap-center keeps that framing while
+              // swiping through the rest.
               <div className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-[calc(50vw-130px)] pb-2 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="min-w-[260px] snap-center sm:min-w-0">
@@ -180,17 +166,10 @@ export function FlightSearchResults({
               </p>
             )}
             {!outbound.loading && outbound.offers && outbound.offers.length > 0 && (
-              // Mobile padding is `calc(50vw - 130px)` (half the viewport
-              // width minus half the 260px card width) instead of a flat
-              // px-6, so the first card sits centered in the screen the
-              // moment this loads, rather than flush against the left
-              // padding with the next card only peeking in on the right.
-              // `snap-center` on each card (below) keeps that same
-              // centered framing as you swipe through the rest, instead of
-              // snapping each one flush left. This does trade away the
-              // "next card peeking in" hint that a flush-left layout gave
-              // for free — a deliberate choice after feedback asked
-              // specifically for centering, not a side effect.
+              // Mobile padding is calc(50vw - 130px) — half viewport minus
+              // half the 260px card — so the first card sits centered
+              // instead of flush left. snap-center keeps that framing while
+              // swiping through the rest.
               <div className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-[calc(50vw-130px)] pb-2 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">
                 {outbound.offers.slice(0, 8).map((offer) => (
                   <div key={offer.id} className="min-w-[260px] snap-center sm:min-w-0">

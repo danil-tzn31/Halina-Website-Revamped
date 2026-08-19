@@ -1,29 +1,19 @@
 // Static, curated content — not API-driven. Unlike flights/hotels, "which
-// destinations to feature" is an editorial choice a real travel site makes
-// once and updates occasionally, not something that needs a live data
-// source. Photos are hotlinked from Unsplash (same free-license approach as
-// the hero photo), each one verified to actually depict the named place
-// before being used here.
+// destinations to feature" is an editorial choice a travel site makes once
+// and updates occasionally, not something that needs a live data source.
+// Photos are hotlinked from Unsplash, each verified to actually depict the
+// named place.
 //
-// vibe/budget/groupFit exist for exactly one consumer: the trip finder
-// (components/destinations/trip-finder-modal.tsx, see Halina-Revamp-Plan.md
-// section 35). They're a hand-judged editorial call, same spirit as
-// everything else in this file — not derived from any real pricing or
-// survey data, so they're deliberately coarse (three buckets, not a
-// precise score) rather than dressed up as more rigorous than they are.
+// vibe/budget/groupFit feed the trip finder
+// (components/destinations/trip-finder-modal.tsx). They're a hand-judged
+// editorial call, deliberately coarse (three buckets) rather than dressed
+// up as more precise than they are.
 //
-// `vibes` is a list, not a single value, as of section 51 — a real, honest
-// fix for a real limitation: a lot of these destinations genuinely aren't
-// just one thing (Coron is both a dive/adventure spot and, just as
-// obviously, a beach one; Panglao is a beach with real whale-shark/dolphin
-// adventure tourism attached; Siquijor is adventure with a real folklore/
-// culture undercurrent). Every destination's `vibes` list was hand-judged
-// against its own already-researched blurb/highlights above, not
-// re-researched from scratch — about 40% of the 38 destinations here
-// genuinely are just one vibe (Boracay is purely a beach, Vigan purely
-// culture, Mt. Pulag purely adventure), and stayed single-tagged rather
-// than padded out for the sake of it. A destination's *first* listed vibe
-// is its strongest/most-defining one; order past that isn't meaningful.
+// `vibes` is a list, not a single value — many destinations genuinely
+// aren't just one thing (Coron is both dive/adventure and beach; Siquijor
+// is adventure with a real folklore/culture undercurrent). A destination's
+// *first* listed vibe is its strongest/most-defining one; order past that
+// isn't meaningful.
 export type Vibe = "beach" | "adventure" | "culture";
 export type Budget = "budget" | "mid" | "splurge";
 export type GroupFit = "solo" | "partner" | "group";
@@ -37,11 +27,9 @@ export type Destination = {
   highlights: string[];
   photo: string;
   // Optional CSS `object-position` value (e.g. "center 70%"). Only needed
-  // when the default dead-center crop cuts a photo's actual subject off
-  // awkwardly inside a small/near-square bento cell — most photos don't
-  // need this and simply omit it, falling back to plain "center" in
-  // DestinationCard. See Halina-Revamp-Plan.md section 56 for why this
-  // exists and how to re-tune a value once you can see the real photo.
+  // when the default dead-center crop cuts a photo's subject off awkwardly
+  // in a small/near-square bento cell; omitted photos fall back to
+  // "center" in DestinationCard.
   photoPosition?: string;
   vibes: Vibe[];
   budget: Budget;
@@ -73,15 +61,10 @@ export const DESTINATIONS: Destination[] = [
     highlights: ["Cloud 9 surf break", "Island hopping", "Lagoon swimming"],
     photo:
       "https://images.unsplash.com/photo-1722704629854-ed679b4b81b4?w=1600&q=80&auto=format&fit=crop",
-    // This is the wide Cloud 9 boardwalk/watchtower shot — a lot of open
-    // sky and water around a narrower wooden structure. Dead-center
-    // cropping it into the homepage's small square bento cell was cutting
-    // it in a way that read as "incomplete." Biased down toward the
-    // boardwalk/water instead of the sky above it. This is a best-effort
-    // starting value, not a measured one — this sandbox can't load the
-    // real photo to check pixel-for-pixel, so nudge it on your own machine
-    // if it's still not quite right (higher % = crop shifts down, lower %
-    // = crop shifts up).
+    // Wide Cloud 9 boardwalk/watchtower shot with a lot of open sky and
+    // water around a narrower structure — dead-center cropping cut it
+    // awkwardly, so this biases down toward the boardwalk/water (higher %
+    // = crop shifts down).
     photoPosition: "center 68%",
     vibes: ["adventure", "beach"],
     budget: "budget",
@@ -143,13 +126,10 @@ export const DESTINATIONS: Destination[] = [
     budget: "budget",
     groupFit: ["solo", "partner", "group"],
   },
-  // Five more added in Halina-Revamp-Plan.md section 44, specifically so the
-  // AI trip search and the quiz aren't limited to the original six spots —
-  // a visitor describing mountain views or a volcano vista now has real
-  // matches to land on beyond Batad. Same editorial bar as the original six:
-  // every photo below is a real Unsplash photo, checked against its own
-  // location tag (not just its filename or search-result context) before
-  // being used here.
+  // Five more added so the AI trip search and quiz aren't limited to the
+  // original six spots — a visitor describing mountain views or a volcano
+  // vista now has real matches beyond Batad. Same bar as the original six:
+  // every photo checked against its own location tag before use.
   {
     slug: "baguio",
     name: "Baguio",
@@ -220,26 +200,16 @@ export const DESTINATIONS: Destination[] = [
     budget: "mid",
     groupFit: ["solo", "group"],
   },
-  // 27 more added in Halina-Revamp-Plan.md section 49 — the first real batch
-  // of the "tens, manually curated" scale-up you chose over the live-feed
-  // approach (section 48's trial). Same editorial bar as every destination
-  // above: every photo below was individually verified (via its own
-  // Unsplash page's location tag/caption, not a keyword-search guess)
-  // against the specific place it's meant to depict, and every
-  // nearestAirport code was checked against real, currently-operating
-  // scheduled service rather than assumed from geography alone — a few
-  // destinations (Puerto Galera, Hundred Islands, Marinduque, Banaue) have
-  // no truly nearby airport and use the honest, currently-real gateway
-  // instead (the same pattern already used for Batad/Baguio/Sagada/Tagaytay
-  // above, all of which point to MNL despite being reached by road). Four
-  // real, well-documented destinations from the approved candidate list —
-  // Buscalan, Corregidor Island, Donsol, and Cagayan de Oro — are
-  // deliberately NOT included in this batch: real research turned up no
-  // Unsplash photo that could be confidently verified as actually depicting
-  // that specific place, and this project has never shipped an unverified
-  // photo (section 11 already caught several mislabeled non-Philippines
-  // photos the first time this was done). They're a real, open gap, not an
-  // oversight — see the plan doc for how to close it.
+  // 27 more, manually curated. Same bar as every destination above: each
+  // photo verified against its own location tag (not a keyword-search
+  // guess), and each nearestAirport checked against real, currently
+  // operating service — a few destinations (Puerto Galera, Hundred
+  // Islands, Marinduque, Banaue) have no truly nearby airport and use the
+  // honest closest gateway instead, same as Batad/Baguio/Sagada/Tagaytay
+  // above, all pointing to MNL. A few other well-documented destinations
+  // (Buscalan, Corregidor Island, Donsol, Cagayan de Oro) were left out —
+  // no Unsplash photo could be confidently verified as actually depicting
+  // them.
   {
     slug: "el-nido",
     name: "El Nido",
@@ -620,14 +590,10 @@ export const DESTINATIONS: Destination[] = [
   },
 ];
 
-// The homepage's "Where to go next" grid deliberately doesn't show all
-// eleven destinations (Halina-Revamp-Plan.md section 45) — once the list
-// grew past six, showing every entry made that section feel long and
-// undifferentiated. This is a smaller, hand-picked set chosen to be varied
-// against each other (a different vibe, budget, and activity each) rather
-// than the six oldest entries by coincidence of file order. The quiz and AI
-// trip search are unaffected by this list — they still match against every
-// destination in DESTINATIONS above, including the five not featured here.
+// The homepage's "Where to go next" grid deliberately doesn't show every
+// destination — a smaller, hand-picked set chosen to be varied (different
+// vibe, budget, activity each) rather than the first few by file order. The
+// quiz and AI trip search still match against all of DESTINATIONS above.
 // Order here is also the display order on the homepage.
 export const HOMEPAGE_FEATURED_SLUGS = [
   "boracay",

@@ -11,10 +11,9 @@ export const FLIGHT_SORT_OPTIONS: { value: FlightSortKey; label: string }[] = [
   { value: "price_desc", label: "Price: High to Low" },
 ];
 
-// `"default"` returns the offers in whatever order the provider (or its
-// seeded fallback data) returned them in — this app has no "recommended"
-// scoring of its own, so "no sort applied yet" is the honest label for that
-// state rather than pretending there's a smarter ranking underneath.
+// `"default"` returns offers in whatever order the provider returned
+// them — there's no "recommended" scoring of our own, so this is the
+// honest label for "no sort applied."
 export function sortFlightOffers(offers: FlightOffer[], sortKey: FlightSortKey): FlightOffer[] {
   if (sortKey === "default") return offers;
   const sorted = [...offers];

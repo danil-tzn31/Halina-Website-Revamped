@@ -8,21 +8,13 @@ import { BookingPrice } from "@/components/account/booking-price";
 import { formatDateLabel } from "@/lib/flights/format";
 import { AIRPORTS } from "@/lib/flights/airports";
 
-// The second half of the standout-feature request (Halina-Revamp-Plan.md
-// section 35/36) — a stylized, downloadable "boarding pass" version of a
-// confirmed flight booking, shown on /booking/success once a booking is
-// actually PAID. Flight-only: the boarding-pass metaphor (route codes,
-// gate-style layout, tear-off stub) genuinely doesn't map onto a hotel
-// stay, so hotel bookings keep the plain confirmation box that was already
-// there — see app/booking/success/page.tsx for the type/status gate.
+// Stylized, downloadable "boarding pass" for a PAID flight booking, shown
+// on /booking/success. Flight-only — the route/gate-layout metaphor
+// doesn't map onto a hotel stay, so hotels keep the plain confirmation box.
 //
-// Deliberately renders with no images inside it (icons are inline SVG via
-// lucide-react, everything else is text/CSS) — html-to-image (the library
-// that turns this DOM node into a downloadable PNG below) can fail or
-// silently blank out cross-origin images unless the server sends the right
-// CORS headers, which Unsplash's photo CDN doesn't guarantee. Keeping the
-// captured card itself photo-free sidesteps that failure mode entirely
-// instead of fighting it.
+// Deliberately photo-free (icons are inline SVG, everything else text/CSS)
+// — html-to-image can fail or blank out cross-origin images without the
+// right CORS headers, which Unsplash's CDN doesn't guarantee.
 type FlightLegDetails = {
   airline?: string;
   flightNumber?: string;
@@ -58,14 +50,8 @@ export function BoardingPassCard({ booking }: { booking: BoardingPassData }) {
 
   useEffect(() => {
     // Feature-detected in an effect, not at render time — `navigator`
-    // doesn't exist during server rendering at all, so checking it while
-    // this component first renders (before hydration) would either crash
-    // or silently disagree between server and client. This is the same
-    // "safe kind" of setState-in-effect the lint rule's own guidance
-    // calls out — reading an external system (the browser's own
-    // capabilities) once after mount, not something derivable from props
-    // or state during render — already used the same way for
-    // localStorage in lib/currency/currency-context.tsx.
+    // doesn't exist during server rendering, so checking it on first
+    // render would crash or mismatch between server and client.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCanShareFiles(
       typeof navigator !== "undefined" && !!navigator.share && !!navigator.canShare
@@ -73,40 +59,21 @@ export function BoardingPassCard({ booking }: { booking: BoardingPassData }) {
   }, []);
 
   const isRoundTrip = booking.details.tripType === "round_trip";
-  // A real confirmation code, not an invented one — the last 8 characters
-  // of the booking's own database id, uppercased. Short enough to read
-  // like a real airline PNR, but it's not a separate fake value generated
-  // just for this card; it traces back to the actual row.
+  // Last 8 chars of the booking's own id, uppercased — reads like a real
+  // PNR without inventing a separate fake value.
   const confirmationCode = booking.id.slice(-8).toUpperCase();
 
   async function generateImage(): Promise<string | null> {
     if (!cardRef.current) return null;
-    // pixelRatio: 2 renders at double resolution ("retina") so the
-    // downloaded/shared file looks sharp on a phone screen, not just
-    // matching whatever size the card happens to be on screen right now.
+    // pixelRatio: 2 for a sharp image on high-DPI screens.
     //
-    // `style: { margin: "0" }` looks redundant with the card's own
-    // `mx-auto` class, but it isn't — it's the fix for a real bug found
-    // while testing this. This card centers itself with `mx-auto`, which
-    // Tailwind resolves to `margin-left/right: auto`. html-to-image clones
-    // this node into an SVG sized to exactly the card's own width/height,
-    // but the clone carries over the *computed* margin from the live page
-    // (auto resolved to a fixed pixel value based on the live page's wider
-    // surrounding layout, e.g. ~260px to center a 480px card in a 1000px
-    // container) rather than re-resolving "auto" against the new, narrower
-    // SVG frame. The result: every exported image came out shifted right
-    // by that margin and cropped, even though the on-screen card looked
-    // completely correct — confirmed by testing several other export
-    // options first (no pixelRatio, explicit canvas dimensions) and
-    // seeing the identical shift every time, which pointed at something
-    // about the captured node itself rather than the export resolution.
-    // Explicitly overriding the clone's margin to 0 stops it from
-    // inheriting that stale centering offset.
+    // style: { margin: "0" } fixes a real bug: html-to-image clones this
+    // node into an SVG sized to its own bounds, but carries over the
+    // computed `mx-auto` margin from the live page's wider layout, which
+    // shifts and crops the export. Zeroing it out avoids that.
     return toPng(cardRef.current, {
       pixelRatio: 2,
-      backgroundColor: "#fbf3e7", // --paper — keeps the exported PNG's
-      // corners solid instead of transparent, since a shared image with a
-      // see-through background can look broken depending on where it lands.
+      backgroundColor: "#fbf3e7", // --paper — solid corners instead of transparent
       style: { margin: "0" },
     });
   }
@@ -140,9 +107,8 @@ export function BoardingPassCard({ booking }: { booking: BoardingPassData }) {
       }
       setState("idle");
     } catch (err) {
-      // The person closing the native share sheet without picking
-      // anything also rejects this promise (AbortError) — that's a
-      // cancel, not a failure, so it shouldn't show an error message.
+      // Closing the native share sheet without picking anything rejects
+      // with AbortError — that's a cancel, not a failure.
       if (err instanceof Error && err.name === "AbortError") {
         setState("idle");
       } else {
@@ -191,17 +157,9 @@ export function BoardingPassCard({ booking }: { booking: BoardingPassData }) {
           </div>
         )}
 
-        {/* The perforated "tear here" line between the main pass and its
-            stub — two paper-colored circles cut into the border read as a
-            punched-out notch, the same visual shorthand real ticket stubs
-            use, without needing an actual image or SVG mask to fake it.
-            Positioned with `translate-x` (a transform) rather than a
-            negative `left`/`right` value — purely a preference for these
-            two, not the fix for the export bug documented on
-            `generateImage()` below (that turned out to be this card's own
-            `mx-auto` centering, not these notches — an early, wrong guess
-            about the cause is worth naming so it isn't mistaken for the
-            real explanation later). */}
+        {/* Perforated "tear here" line — two paper-colored circles cut
+            into the border read as a punched notch, like a real ticket
+            stub. */}
         <div className="relative border-t border-dashed border-ink/40">
           <span className="absolute left-0 top-0 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full bg-paper" />
           <span className="absolute right-0 top-0 h-6 w-6 translate-x-1/2 -translate-y-1/2 rounded-full bg-paper" />
@@ -276,13 +234,8 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-// A purely decorative barcode — fixed, evenly-spaced bars, not an actual
-// encoded/scannable value. A real boarding pass's barcode encodes a PNR
-// for a gate scanner to read; faking that here would present something as
-// functional that isn't, so this is deliberately just a visual motif that
-// reads as "ticket stub" at a glance — the same honesty standard already
-// applied elsewhere in this project (no fabricated ratings, no invented
-// API fields that were never actually confirmed in a real response).
+// Purely decorative — fixed, evenly-spaced bars, not an actual encoded
+// value. A real barcode would encode a PNR for a gate scanner to read.
 function Barcode() {
   const widths = [2, 1, 3, 1, 1, 2, 3, 1, 2, 1, 1, 3, 2, 1];
   return (

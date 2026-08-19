@@ -3,32 +3,15 @@ import Link from "next/link";
 import { getHomepageFeaturedDestinations } from "@/lib/destinations/data";
 import { DestinationGrid } from "@/components/destinations/destination-grid";
 
-// Static content, so this stays a plain Server Component — no client-side
-// fetching or "use client" needed here.
+// Static content — plain Server Component, no client-side fetching needed.
 //
-// This section used to also render a "Take the quiz" trigger card
-// (DestinationQuizModal) right below the heading, plus a second AI-search
-// card below that. Both are gone as of section 43 — they've been merged
-// into TripFinderModal, the single site-wide floating bubble mounted once
-// in app/layout.tsx (see that component's own comment for the full
-// history of why). The line below is what's left of this section's old
-// job of pointing visitors at that feature — a small hint rather than a
-// full trigger card, since the bubble itself is now visible on every page
-// including this one, not just discoverable from here.
+// Trip finder is a site-wide floating bubble (see TripFinderModal in
+// app/layout.tsx); the line below just points visitors at it instead of
+// duplicating a trigger card here.
 //
-// This grid renders getHomepageFeaturedDestinations() — a hand-picked
-// subset of six, not every destination in DESTINATIONS (section 45). The
-// quiz and AI trip search still see and match against all eleven; this
-// section is just about keeping the homepage itself from feeling like a
-// long, undifferentiated list.
-//
-// As of this pass, the old uniform 3-column grid (photo on top, a text
-// block below it) is gone — this now renders DestinationGrid, an
-// asymmetrical/"bento" layout of image-only cards whose name/region/blurb
-// live in an overlay on the photo itself (see destination-card.tsx and
-// destination-grid.tsx). The "See all destinations" link below now points
-// at app/destinations/page.tsx — a dedicated page listing all 38, not
-// just this featured six, reusing this same DestinationGrid.
+// Shows a hand-picked subset via getHomepageFeaturedDestinations() to keep
+// the homepage from feeling like a long list — the full set is browsable
+// via "See all destinations".
 export function DestinationsSection() {
   const destinations = getHomepageFeaturedDestinations();
 

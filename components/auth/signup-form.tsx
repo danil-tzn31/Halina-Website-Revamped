@@ -33,17 +33,11 @@ export function SignupForm({
     formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({ resolver: zodResolver(registerSchema) });
 
-  // Read the password field's live value purely to drive the checklist
-  // below — this doesn't replace the real validation, which still happens
-  // through registerSchema (client-side via zodResolver above, and again
-  // server-side in /api/auth/register, since a client can always be
-  // bypassed). `useWatch` rather than the `watch()` method returned by
-  // useForm — both do the same job, but `watch()` is a plain function the
-  // React Compiler can't safely memoize around (it flagged exactly this),
-  // while `useWatch` is a real hook built to subscribe to one field's
-  // changes cleanly. Defaults to "" before the user's typed anything, so
-  // every requirement starts unmet rather than the checklist rendering
-  // blank.
+  // Drives the live password checklist below; real validation still goes
+  // through registerSchema (client + server). useWatch instead of
+  // useForm's watch() since watch() is a plain function the React
+  // Compiler can't memoize around. Defaults to "" so requirements start
+  // unmet rather than the checklist rendering blank.
   const passwordValue = useWatch({ control, name: "password" }) ?? "";
 
   async function onSubmit(data: RegisterInput) {
@@ -131,12 +125,9 @@ export function SignupForm({
             type="password"
             {...register("password")}
           />
-          {/* The checklist below is the only feedback shown for this field
-              on purpose — registerSchema's actual error message for a weak
-              password is deliberately generic ("doesn't meet the
-              requirements below") specifically because this list already
-              says exactly what's missing, in real time, without waiting
-              for a submit attempt. */}
+          {/* Only feedback shown for this field — registerSchema's own
+              error message is deliberately generic since this list already
+              shows what's missing in real time. */}
           <ul className="mt-0.5 flex flex-col gap-0.5">
             {passwordRequirements.map((requirement) => {
               const met = requirement.test(passwordValue);

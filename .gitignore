@@ -44,11 +44,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# Unused create-next-app starter assets — not referenced anywhere in
-# app/, components/, or lib/ (confirmed via a full-project search)
-public/file.svg
-public/globe.svg
-public/next.svg
-public/vercel.svg
-public/window.svg

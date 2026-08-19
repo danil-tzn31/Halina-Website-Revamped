@@ -18,25 +18,16 @@ import { formatDateLabel, formatTime, hasTime } from "@/lib/flights/format";
 import type { FlightOffer } from "@/lib/flights/types";
 import { rememberPendingCheckout } from "@/components/booking/checkout-abandon-watcher";
 
-// The "click a result -> modal with a bigger visual + full details +
-// booking form" pattern, per the standing requirement (see
-// Halina-Revamp-Plan.md section 8) — not a /booking/[id] page. Confirming
-// here does two things in sequence: creates a real PENDING booking row via
-// POST /api/bookings, then immediately hands that booking's id to
-// POST /api/checkout, which creates a Stripe-hosted Checkout Session and
-// returns its URL — the browser is redirected there via
-// `window.location.href` (a real full-page navigation, not client-side
-// routing, since Stripe's Checkout page isn't part of this Next app). The
-// booking is only ever marked PAID later, asynchronously, by Stripe's
-// webhook (app/api/stripe/webhook/route.ts) — never by this modal, since a
-// redirect happening here doesn't yet mean the payment actually succeeded.
+// "Click a result → modal with full details + booking form" rather than a
+// /booking/[id] page. Confirming creates a PENDING booking via
+// POST /api/bookings, then starts a Stripe Checkout session via
+// POST /api/checkout and redirects with window.location.href (a full-page
+// nav, since Stripe's page isn't part of this app). The booking is only
+// marked PAID later, by Stripe's webhook — never by this modal.
 //
-// `returnOffer` is only ever passed by RoundTripFlightPicker, once someone
-// has picked BOTH a departure and a return flight (see that component for
-// why round trips are a two-step "pick outbound, then pick return" flow
-// rather than one combined search result) — a plain one-way booking just
-// never passes it, and every render branch below falls back to the
-// original one-leg layout when it's absent.
+// `returnOffer` is only passed once a round trip's return leg is picked
+// (see RoundTripFlightPicker); a one-way booking falls back to the
+// single-leg layout when it's absent.
 export function FlightDetailModal({
   offer,
   returnOffer,
@@ -128,10 +119,8 @@ export function FlightDetailModal({
       }
 
       const { url } = await checkoutRes.json();
-      // Recorded so components/booking/checkout-abandon-watcher.tsx can
-      // clean this booking up if the visitor uses their browser's own back
-      // button to return here instead of Stripe's "Back" link — see that
-      // file's comment for why that case needs separate handling.
+      // Lets checkout-abandon-watcher.tsx clean this booking up if the
+      // visitor uses their browser's back button instead of Stripe's link.
       rememberPendingCheckout(booking.id);
       // A full-page navigation, not router.push() — Stripe's Checkout page
       // is a completely separate site, not a route inside this Next app.
@@ -145,11 +134,9 @@ export function FlightDetailModal({
   return (
     <Dialog open={Boolean(offer)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-xl gap-0 p-0">
-        {/* Stand-in "larger photo" — a per-destination photo library is a
-            natural extension of Day 4's destinations work, not built yet,
-            so this is an ink-gradient visual in the same brand language
-            rather than a generic stock photo that wouldn't actually match
-            the route. */}
+        {/* Stand-in for a per-destination photo (not built yet) — an
+            ink-gradient in the brand palette instead of a generic stock
+            photo that wouldn't match the route. */}
         <div className="flex h-36 flex-col justify-end bg-gradient-to-br from-ink to-teal px-8 py-5 text-paper">
           <p className="text-[12px] uppercase tracking-[0.14em] text-paper/70">
             {returnOffer && returnDate
@@ -273,22 +260,11 @@ function FlightLegSummary({
   const arrivalKnown = hasTime(arrivalTime);
 
   return (
-    // Rebuilt around the same self-balancing structure as
-    // components/sections/flight-result-card.tsx (see that file's comment
-    // for the full reasoning): departure and arrival size to their own
-    // content — small now that the airport code (always 3 letters) is the
-    // headline, not the variable-width time — and the divider between them
-    // is the only piece with `flex-1`, absorbing whatever room the modal
-    // has. No dashed line here either, for the same reason as the card: a
-    // line stretching across the whole gap ended up dominating the middle
-    // instead of reading as a subtle detail, where a plain badge (matching
-    // the loading skeleton's plain circle) sits calmly on its own.
+    // Same structure as flight-result-card.tsx: departure/arrival size to
+    // their own content, divider absorbs the rest via flex-1.
     //
-    // `w-full` here matters for the same Safari-specific reason documented
-    // in flight-result-card.tsx: this row is a flex child that's also a
-    // flex container itself, and Safari doesn't reliably stretch that kind
-    // of nested flex child to the parent's full width the way Chrome does —
-    // stating the width explicitly avoids relying on that.
+    // `w-full` works around Safari not reliably stretching a nested flex
+    // child to its parent's full width.
     <div className="mt-2 flex w-full items-center gap-4 border-y border-line py-4">
       <div className="flex shrink-0 flex-col items-start gap-1.5">
         <p className="text-2xl text-ink">{departureAirportCode}</p>

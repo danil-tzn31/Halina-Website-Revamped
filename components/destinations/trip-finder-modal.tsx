@@ -19,52 +19,26 @@ import { matchDestinations, type QuizMatch } from "@/lib/destinations/quiz";
 import type { Destination, Vibe, Budget, GroupFit } from "@/lib/destinations/data";
 import { addDaysISO } from "@/lib/date-utils";
 
-// Halina-Revamp-Plan.md section 43. This replaces two separate features —
-// the hard-coded destination quiz (destination-quiz-modal.tsx, section 35)
-// and the AI trip search (ai-trip-search-modal.tsx, sections 39-42) — with
-// one. They used to be genuinely redundant: both ultimately called
-// matchDestinations() against the same three tags (vibe/budget/group), so
-// for the same intent they always produced the same destinations —
-// clicking three buttons or describing a sentence were just two different
-// front doors into the identical result. Worse, the AI's classification
-// wasn't even reliably correct (a real bug: "mountain views" got mapped to
-// "beach" — fixed separately in lib/ai/trip-search.ts's RESPONSE_SCHEMA,
-// see that file's comments), and a wrong AI guess used to be a dead end —
-// the old ai-trip-search-modal.tsx just showed whatever Gemini said, with
-// no way to correct it before seeing results.
-//
-// This component fixes both problems by merging the two into one flow
-// that's always reviewable and always has a manual fallback: describe your
-// trip (optional) to prefill three quick-select button groups — the exact
-// same three questions the old quiz asked, just all visible at once
-// instead of one-at-a-time — then review, correct if needed, and see your
-// matches. Skip the sentence entirely and it behaves exactly like the old
-// free quiz always did: click three buttons, get matches, no AI call ever
-// made. The AI is now a genuine convenience layered on top of the always-
-// available manual path, not a separate, parallel feature with its own
-// failure modes.
+// Combines a manual destination quiz with optional AI trip search: describe
+// your trip to prefill three quick-select groups (vibe/budget/group), then
+// review and correct before seeing matches. Skip the description entirely
+// and it behaves as a plain manual quiz — the AI is a convenience layered
+// on top, never a required step.
 export function TripFinderModal() {
   const [query, setQuery] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
-  // A single inline note slot covers every non-happy-path outcome from the
-  // AI call — "couldn't understand," a validation/rate-limit error, or a
-  // real network failure. The old ai-trip-search-modal.tsx gave each of
-  // those its own full dead-end screen; here, none of them block anything,
-  // since the three quick-select buttons below are always still clickable
-  // by hand regardless of what the AI call did or didn't manage to do.
+  // Single note slot covers any non-happy-path AI outcome (parse failure,
+  // rate limit, network error) — none of them block the quick-select
+  // buttons below, which stay clickable regardless.
   const [aiNote, setAiNote] = useState<string | null>(null);
 
-  // "any" (section 46) is a genuine third choice on every question, not
-  // just an unanswered state — see lib/destinations/quiz.ts's own comment
-  // for why it exists. `null` still means "hasn't picked anything yet,"
-  // same as before.
+  // "any" is a real third choice, not just an unanswered state — see
+  // lib/destinations/quiz.ts. `null` means nothing picked yet.
   const [vibe, setVibe] = useState<Vibe | "any" | null>(null);
   const [budget, setBudget] = useState<Budget | "any" | null>(null);
   const [group, setGroup] = useState<GroupFit | "any" | null>(null);
-  // date/travelers (section 42) still ride along for the "search flights/
-  // hotels" prefill links on the results screen — they're best-effort and
-  // have no manual equivalent to correct them with, unlike vibe/budget/
-  // group, so they're just used as-is when the AI provided them.
+  // Best-effort AI extractions for the flights/hotels prefill links; no
+  // manual fallback, used as-is when provided.
   const [date, setDate] = useState<string | null>(null);
   const [travelers, setTravelers] = useState<number | null>(null);
 
@@ -103,12 +77,9 @@ export function TripFinderModal() {
         return;
       }
 
-      // This is the fix for "the AI seems inaccurate": rather than trusting
-      // this guess straight into a results screen, it just pre-selects the
-      // same three buttons a manual visitor would click — visibly, so a
-      // wrong guess (like "beach" for a mountain-view sentence) is
-      // something you SEE and can immediately click a different answer
-      // for, not something you'd only notice in the final destination list.
+      // Pre-selects the same buttons a manual visitor would click, rather
+      // than jumping straight to results — a wrong guess is visible and
+      // correctable before it affects anything.
       setVibe(data.vibe);
       setBudget(data.budget);
       setGroup(data.group);
@@ -145,17 +116,12 @@ export function TripFinderModal() {
   return (
     <Dialog
       onOpenChange={(open) => {
-        // Same reasoning as the old ai-trip-search-modal.tsx: this
-        // component's state lives here, not inside DialogContent, so it
-        // survives a close/reopen unless explicitly reset.
+        // State lives here, not in DialogContent, so it's cleared
+        // explicitly on close rather than surviving unintentionally.
         if (!open) reset();
       }}
     >
-      {/* The same floating bubble from section 41 — still mounted once,
-          globally, in app/layout.tsx, still reachable from every page.
-          Label updated from "Describe your dream trip" to "Find your
-          destination" since typing a sentence is now optional, not the
-          only way in. */}
+      {/* Floating trigger, mounted globally in app/layout.tsx. */}
       <DialogTrigger asChild>
         <button
           type="button"
@@ -245,11 +211,9 @@ export function TripFinderModal() {
               </DialogDescription>
             </DialogHeader>
 
-            {/* Up to 3 cards (section 50, down from section 46's 5 — keeps
-                the list feeling like "the best matches" now that the
-                destination pool is 38-wide, section 49). The scroll area
-                is kept even at 3, since a shorter list still needs room to
-                breathe above the header/footer buttons on a small phone. */}
+            {/* Capped at 3 matches. Scroll area kept even at that size so
+                the list has room above the header/footer buttons on a
+                small phone. */}
             <div className="flex max-h-[52vh] flex-col gap-3 overflow-y-auto pr-1">
               {matches.map(({ destination }) => (
                 <div key={destination.slug} className="border border-line bg-paper-raised p-3">
@@ -274,9 +238,8 @@ export function TripFinderModal() {
                     </div>
                   </Link>
 
-                  {/* Same section 42 upgrade as before: a real, prefilled
-                      search, not just a link to the destination's own info
-                      page above. */}
+                  {/* Prefilled search links, not just a link to the
+                      destination page above. */}
                   <div className="mt-3 flex gap-2 border-t border-line pt-3">
                     <DialogClose asChild>
                       <Link
@@ -322,11 +285,8 @@ export function TripFinderModal() {
   );
 }
 
-// Same three questions and same option copy as the old destination-quiz-
-// modal.tsx, plus one addition as of section 46: a fourth "I'm not sure"
-// pill on every question, value "any" — a genuine third answer (see
-// lib/destinations/quiz.ts), not a way to leave the question blank. It's
-// listed last on each row so the three real options still read first.
+// "any" ("I'm not sure") is a real fourth answer, not a blank — see
+// lib/destinations/quiz.ts. Listed last so the three real options read first.
 const VIBE_OPTIONS: { value: Vibe | "any"; label: string }[] = [
   { value: "beach", label: "Relax on a beach" },
   { value: "adventure", label: "Chase adventure" },
@@ -348,13 +308,9 @@ const GROUP_OPTIONS: { value: GroupFit | "any"; label: string }[] = [
   { value: "any", label: "I'm not sure" },
 ];
 
-// A compact row of pill-style buttons rather than the old quiz's full-
-// width, one-per-line options — with three question groups now all on
-// screen at once (instead of one at a time), a full-width stacked layout
-// would make this dialog taller than a lot of phone screens. The filled/
-// inverted style on the selected option is what makes an AI-prefilled
-// answer visibly reviewable: you can see exactly what got picked before
-// committing to it, which is the whole point of this redesign.
+// Compact pill row keeps three question groups on screen at once without
+// running the dialog taller than most phone screens. The filled style on
+// the selected option makes an AI-prefilled answer visibly reviewable.
 function AnswerGroup<T extends string>({
   label,
   options,
@@ -377,11 +333,8 @@ function AnswerGroup<T extends string>({
             onClick={() => onChange(option.value)}
             className={cn(
               "border px-2.5 py-1.5 text-[12px] transition-colors",
-              // "any" ("I'm not sure") gets a dashed border and italic
-              // label instead of the normal solid style, whether selected
-              // or not — a visual cue that it's a wildcard opting OUT of
-              // that question, not a fourth real preference sitting
-              // alongside the other three.
+              // Dashed border + italic marks "any" as opting out, not a
+              // real preference alongside the other three.
               option.value === "any" && "border-dashed italic",
               value === option.value
                 ? "border-ink bg-ink text-paper"
@@ -396,12 +349,8 @@ function AnswerGroup<T extends string>({
   );
 }
 
-// Builds a link into the homepage's own search bar, prefilled with this
-// match's airport and (when available) the trip's own date/traveler count
-// — see Halina-Revamp-Plan.md section 42 for the full history of this
-// query-string contract (app/page.tsx, components/sections/hero.tsx, and
-// SearchBar's own `initial*` props all had to cooperate to make this work,
-// including a real same-route-navigation bug that needed a `key` fix).
+// Builds a link into the homepage search bar, prefilled with this match's
+// airport and (when available) the trip's date/traveler count.
 function buildFlightsHref(destination: Destination, date: string | null, travelers: number | null): string {
   const params = new URLSearchParams({ prefillTab: "flights", prefillTo: destination.nearestAirport });
   if (date) params.set("prefillDepart", date);
@@ -409,11 +358,9 @@ function buildFlightsHref(destination: Destination, date: string | null, travele
   return `/?${params.toString()}#search-results`;
 }
 
-// Same idea as buildFlightsHref, for the hotels tab. `prefillCheckOut` is
-// deliberately set to the day after `date` — SearchBar's own check-out
-// field has no auto-fill-from-check-in behavior of its own, so leaving it
-// unset here would land on a form with one date field filled and the
-// other empty, which reads as broken rather than "not extracted."
+// Same idea for the hotels tab. `prefillCheckOut` is set to the day after
+// `date` since SearchBar doesn't auto-fill it — leaving it blank would show
+// one date field filled and the other empty, which reads as broken.
 function buildHotelsHref(destination: Destination, date: string | null, travelers: number | null): string {
   const params = new URLSearchParams({ prefillTab: "hotels", prefillDestination: destination.name });
   if (date) {

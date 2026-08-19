@@ -17,15 +17,11 @@ import { formatDateLabel } from "@/lib/flights/format";
 import type { HotelOffer } from "@/lib/hotels/types";
 import { rememberPendingCheckout } from "@/components/booking/checkout-abandon-watcher";
 
-// Same pattern as FlightDetailModal: a larger photo, full details, and a
-// "Confirm & pay" action that creates a real PENDING booking row, then
-// immediately starts a Stripe Checkout session for it and redirects there
-// — see that file's comment for the full sequencing and why the booking is
-// only ever marked PAID later, by Stripe's webhook, never here. Kept as a
-// near-mirror of the flight modal on purpose rather than a shared generic
-// component, since the two have different enough fields (nights vs.
-// duration, guests vs. adults) that forcing them into one component would
-// need more conditionals than it's worth for two call sites.
+// Same pattern as FlightDetailModal: full details + "Confirm & pay" that
+// creates a PENDING booking then redirects to Stripe Checkout; PAID only
+// gets set later by the webhook. Kept as a near-mirror rather than a
+// shared component — the two have different enough fields (nights vs.
+// duration) that merging them would add more conditionals than it saves.
 function nightsBetween(checkIn: string, checkOut: string): number {
   const start = new Date(`${checkIn}T00:00:00`);
   const end = new Date(`${checkOut}T00:00:00`);
@@ -100,10 +96,8 @@ export function HotelDetailModal({
       }
 
       const { url } = await checkoutRes.json();
-      // Recorded so components/booking/checkout-abandon-watcher.tsx can
-      // clean this booking up if the visitor uses their browser's own back
-      // button to return here instead of Stripe's "Back" link — see that
-      // file's comment for why that case needs separate handling.
+      // Lets checkout-abandon-watcher.tsx clean this booking up if the
+      // visitor uses their browser's back button instead of Stripe's link.
       rememberPendingCheckout(booking.id);
       // A full-page navigation, not router.push() — Stripe's Checkout page
       // is a completely separate site, not a route inside this Next app.

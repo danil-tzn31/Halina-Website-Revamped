@@ -7,14 +7,9 @@ import { Footer } from "@/components/layout/footer";
 import { AdminBookingsTable, type AdminBookingRow } from "@/components/admin/admin-bookings-table";
 import { AdminUsersTable, type AdminUserRow } from "@/components/admin/admin-users-table";
 
-// Minimal shapes used by this page, annotated explicitly rather than
-// relying on inference from the Prisma calls below — same reasoning as
-// app/account/bookings/page.tsx's BookingRow: this sandbox can't generate
-// the real Prisma Client (see HOW-IT-WORKS.md), so an un-generated
-// @prisma/client types everything as `any` here. Once `npx prisma
-// generate` has actually run (which the admin-flag migration already did
-// for you), these still typecheck fine against the real generated types —
-// they're just a subset of them.
+// Minimal shapes, typed explicitly rather than relying on inference from
+// the Prisma calls below — same pattern as BookingRow in
+// app/account/bookings/page.tsx.
 type BookingWithUser = {
   id: string;
   name: string;
@@ -36,18 +31,15 @@ type UserWithBookingCount = {
   _count: { bookings: number };
 };
 
-// proxy.ts's existing /account/* matcher only guarantees "signed in at
-// all" — it has no idea what an admin is. This page adds the actual admin
-// gate on top of that, the same defense-in-depth pattern used everywhere
-// else in this app (a disabled Search button plus a real submit-time
-// guard; client-side Zod validation plus the identical rule enforced again
-// server-side). A non-admin who somehow lands on this URL — an old
-// bookmark, or a session created before their account was ever made an
-// admin (see lib/auth.ts's comment on why that specific case can happen)
-// — gets sent back to their own bookings rather than seeing anyone else's
-// data. The mutating action this page exposes (app/api/admin/bookings/
-// [id]/status/route.ts) re-checks this same isAdmin flag itself too,
-// rather than trusting that only an admin could have reached this far.
+// proxy.ts's /account/* matcher only guarantees "signed in", not admin —
+// this page adds the actual admin gate on top (same defense-in-depth
+// pattern used elsewhere in this app: a disabled button plus a real
+// submit-time guard, client-side validation plus the same rule enforced
+// server-side). A non-admin who lands here — a stale bookmark, or a
+// session predating an admin promotion (see lib/auth.ts) — gets sent back
+// to their own bookings. The mutating route
+// (app/api/admin/bookings/[id]/status/route.ts) re-checks isAdmin itself
+// too.
 export default async function AdminPage() {
   const session = await auth();
   if (!session?.user?.isAdmin) {
@@ -67,11 +59,9 @@ export default async function AdminPage() {
     }),
   ])) as [BookingWithUser[], UserWithBookingCount[]];
 
-  // Dates come back from Prisma as real Date objects — sliced down to a
-  // plain "YYYY-MM-DD" the same way app/account/bookings/page.tsx already
-  // does, for the same reason: formatDateLabel() and this page's own
-  // string-equality date-range check both expect that shape, not a full
-  // Date/timestamp.
+  // Prisma returns real Date objects — sliced to plain "YYYY-MM-DD",
+  // same as app/account/bookings/page.tsx, since formatDateLabel() and
+  // this page's date-range check both expect that shape.
   const bookingRows: AdminBookingRow[] = bookings.map((booking) => ({
     id: booking.id,
     name: booking.name,
@@ -113,16 +103,8 @@ export default async function AdminPage() {
           </div>
         </section>
 
-        {/* mt-16 between sections, not mt-14 — matches the gap already
-            established between the embedded search bar and the results
-            heading on /flights and /hotels (see section 24 of the plan
-            doc), rather than a one-off number picked for this page alone.
-            The "Users" heading sat noticeably closer to the Bookings table
-            above it than the Bookings heading sits below the page title,
-            since a heading-to-table gap and a table-to-heading gap read
-            differently even at the same pixel value — bumped both this
-            section's top margin and its own heading-to-table gap (mt-4 ->
-            mt-6, same change as the Bookings section above) to fix that. */}
+        {/* mt-16 between sections — matches the search-bar-to-results gap
+            used on /flights and /hotels. */}
         <section className="mt-16">
           <h2 className="text-[13px] font-medium uppercase tracking-wide text-ink-soft">
             Users ({users.length})

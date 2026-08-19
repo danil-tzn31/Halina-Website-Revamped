@@ -7,12 +7,8 @@ import { Footer } from "@/components/layout/footer";
 import { BookingCard, type BookingCardData } from "@/components/account/booking-card";
 import { toBoardingPass } from "@/lib/flights/boarding-pass";
 
-// Minimal shape used by this page — annotated explicitly rather than
-// relying on inference from `prisma.booking.findMany`, since this sandbox
-// can't generate the real Prisma Client (see HOW-IT-WORKS.md) and an
-// un-generated `@prisma/client` types everything as `any`. Once you run
-// `npx prisma generate` for real, this still typechecks fine against the
-// actual generated `Booking` type — it's a subset of it.
+// Minimal shape, typed explicitly rather than relying on inference from
+// `prisma.booking.findMany`.
 type BookingRow = {
   id: string;
   name: string;
@@ -26,19 +22,15 @@ type BookingRow = {
   details: unknown;
 };
 
-// proxy.ts already redirects signed-out visitors away from anything under
-// /account before this ever renders, but a Server Component checking
-// `auth()` itself too is cheap insurance — defense in depth rather than
-// trusting the proxy alone.
+// proxy.ts already redirects signed-out visitors away from /account, but
+// checking `auth()` here too is cheap defense in depth.
 export default async function BookingsPage() {
   const session = await auth();
 
-  // CANCELLED is excluded on purpose — those are bookings someone started
-  // but backed out of paying for (see app/api/checkout/cancel/route.ts).
-  // Since nothing was ever actually booked or paid for, there's nothing
-  // useful to show here; a still-PENDING row, on the other hand, is either
-  // mid-checkout or genuinely stuck, so it stays visible (labeled
-  // "pending") rather than being hidden silently.
+  // CANCELLED is excluded — those are abandoned checkouts
+  // (app/api/checkout/cancel/route.ts), nothing was ever paid for. A
+  // still-PENDING row stays visible (labeled "pending") since it may be
+  // mid-checkout or genuinely stuck.
   const bookings: BookingRow[] = session?.user?.id
     ? await prisma.booking.findMany({
         where: { userId: session.user.id, status: { not: "CANCELLED" } },
@@ -46,20 +38,16 @@ export default async function BookingsPage() {
       })
     : [];
 
-  // Dates come back from Prisma as real Date objects, not the "YYYY-MM-DD"
-  // strings formatDateLabel()/BookingCard expect — toISOString().slice(0, 10)
-  // recovers that plain date safely (toISOString is always UTC, and these
-  // were written from a plain date string via `new Date("2026-08-21")`,
-  // which the JS spec also parses as UTC midnight — see
-  // app/api/bookings/route.ts — so no timezone shift can sneak in between
-  // the two conversions).
+  // Prisma returns Date objects, not the "YYYY-MM-DD" strings
+  // formatDateLabel()/BookingCard expect — toISOString().slice(0, 10)
+  // recovers that plain date safely, since these were written from a
+  // plain date string (`new Date("2026-08-21")`), which the JS spec also
+  // parses as UTC midnight (see app/api/bookings/route.ts).
   //
-  // The signed-in user's name is fetched once here (not inside
-  // BookingCard) and reused for every card's boardingPass — the same
-  // reason /booking/success only calls auth() once. toBoardingPass() itself
+  // The signed-in user's name is fetched once here and reused for every
+  // card's boardingPass, rather than inside BookingCard. toBoardingPass()
   // (lib/flights/boarding-pass.ts) returns null for anything that isn't a
-  // PAID flight booking with a cleanly-parsed route, so most cards simply
-  // get boardingPass: null and render no "View boarding pass" button.
+  // PAID flight booking with a cleanly-parsed route.
   const passengerName = session?.user?.name ?? "Guest";
   const cards: BookingCardData[] = bookings.map((booking) => {
     const base = {
@@ -103,10 +91,7 @@ export default async function BookingsPage() {
           </div>
         ) : (
           // Single column on mobile, same breakpoints as the flight/hotel
-          // results grids (sm:2, lg:3) — the mobile audit (Day 6) confirmed
-          // this exact grid pattern already reads cleanly at a 390px
-          // viewport on those pages, so it's reused here rather than
-          // inventing a new responsive layout for this one page.
+          // results grids (sm:2, lg:3).
           <ul className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cards.map((booking) => (
               <li key={booking.id}>

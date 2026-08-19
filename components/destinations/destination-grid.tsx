@@ -11,24 +11,40 @@ import { DestinationCard } from "@/components/destinations/destination-card";
 // at the end of every cycle. Index 4 is "wide" instead of "small" to close
 // it (11 -> 12 cells).
 const BENTO_SPAN_PATTERN = [
-"sm:col-span-2 sm:row-span-2", // big
-"sm:col-span-2",               // wide
-"",                             // small
-"sm:row-span-2",               // tall
-"",                             // small
-"sm:col-span-2",               // wide
+  "sm:col-span-2 sm:row-span-2", // big
+  "sm:col-span-2",               // wide
+  "",                             // small
+  "sm:row-span-2",               // tall
+  "",                             // small
+  "sm:col-span-2",               // wide
 ];
 
-export function getBentoSpanClassName(index: number): string {
-  return BENTO_SPAN_PATTERN[index % BENTO_SPAN_PATTERN.length];
+// A second ordering for the /destinations "see all" page, so its grid
+// doesn't repeat the exact same 6-shape cycle as the homepage's.
+export const SEE_ALL_BENTO_SPAN_PATTERN = [
+  "",                             // small
+  "sm:col-span-2",               // wide
+  "sm:row-span-2",               // tall
+  "sm:col-span-2 sm:row-span-2", // big
+  "sm:col-span-2",               // wide
+  "",                             // small
+];
+
+export function getBentoSpanClassName(
+  index: number,
+  pattern: string[] = BENTO_SPAN_PATTERN
+): string {
+  return pattern[index % pattern.length];
 }
 
 export function DestinationGrid({
   destinations,
   className,
+  pattern = BENTO_SPAN_PATTERN,
 }: {
   destinations: Destination[];
   className?: string;
+  pattern?: string[];
 }) {
   return (
     <div
@@ -42,7 +58,7 @@ export function DestinationGrid({
         <DestinationCard
           key={destination.slug}
           destination={destination}
-          className={getBentoSpanClassName(index)}
+          className={getBentoSpanClassName(index, pattern)}
           priority={index === 0}
         />
       ))}

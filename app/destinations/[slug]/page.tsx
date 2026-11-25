@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,6 +13,10 @@ import {
   type Vibe,
 } from "@/lib/destinations/data";
 import { AIRPORTS } from "@/lib/flights/airports";
+import {
+  DestinationWeather,
+  DestinationWeatherSkeleton,
+} from "@/components/destinations/destination-weather";
 
 // Plain-English versions of the tags each destination already carries.
 // The trip finder uses them for matching; this page is the first place
@@ -120,6 +125,11 @@ export default async function DestinationPage({
           <aside className="h-fit border border-line bg-paper-raised px-6 py-5">
             <p className="text-[13px] italic text-ink-soft">At a glance</p>
             <dl className="mt-4 flex flex-col gap-5">
+              <GlanceRow label="Right now">
+                <Suspense fallback={<DestinationWeatherSkeleton />}>
+                  <DestinationWeather lat={destination.coords.lat} lng={destination.coords.lng} />
+                </Suspense>
+              </GlanceRow>
               <GlanceRow label="Nearest airport">
                 {airportCity} <span className="text-ink-soft">· {destination.nearestAirport}</span>
               </GlanceRow>

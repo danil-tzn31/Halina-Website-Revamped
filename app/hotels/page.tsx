@@ -9,6 +9,7 @@ import { ResultsPageShell, ResultsPending } from "@/components/sections/results-
 import { SearchBar } from "@/components/sections/search-bar";
 import { hotelSearchSchema, type HotelSearchInput } from "@/lib/validators/hotel-search";
 import { searchHotels } from "@/lib/hotels/tripadvisor-provider";
+import { stayPlaceForAirport } from "@/lib/trips";
 
 // Full-results destination for hotel search, mirroring
 // app/flights/page.tsx.
@@ -24,6 +25,11 @@ export default async function HotelsPage({
     checkOut: params.checkOut,
     guests: params.guests,
   });
+
+  // `?trip=` comes from a trip's "find a hotel" link. Only trusted for
+  // display after checking it's the signed-in user's own trip; the
+  // bookings route checks again before attaching anything.
+  const trip = typeof params.trip === "string" ? await findOwnTrip(params.trip) : null;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -44,7 +50,14 @@ export default async function HotelsPage({
             initialCheckIn={parsed.success ? parsed.data.checkIn : undefined}
             initialCheckOut={parsed.success ? parsed.data.checkOut : undefined}
             initialGuests={parsed.success ? parsed.data.guests : undefined}
+            tripId={trip?.id}
           />
+
+          {trip && (
+            <p className="mt-6 text-[13.5px] text-ink-soft">
+              Adding a hotel to your trip to {stayPlaceForAirport(trip.destination)}.
+            </p>
+          )}
 
           <div className="mt-16">
           {!parsed.success ? (
@@ -60,7 +73,7 @@ export default async function HotelsPage({
               skeleton={<ResultsPageSkeleton CardSkeleton={HotelResultCardSkeleton} />}
             >
               <Suspense fallback={<ResultsPageSkeleton CardSkeleton={HotelResultCardSkeleton} />}>
-                <HotelResults searchInput={parsed.data} />
+                <HotelResults searchInput={parsed.data} tripId={trip?.id} />
               </Suspense>
             </ResultsPending>
           )}
@@ -73,7 +86,24 @@ export default async function HotelsPage({
   );
 }
 
-async function HotelResults({ searchInput }: { searchInput: HotelSearchInput }) {
+async function findOwnTrip(tripId: string) {
+  const { auth } = await import("@/lib/auth");
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  const { prisma } = await import("@/lib/prisma");
+  return prisma.trip.findFirst({
+    where: { id: tripId, userId: session.user.id },
+    select: { id: true, destination: true },
+  });
+}
+
+async function HotelResults({
+  searchInput,
+  tripId,
+}: {
+  searchInput: HotelSearchInput;
+  tripId?: string;
+}) {
   const result = await searchHotels(searchInput);
 
   return (
@@ -100,6 +130,7 @@ async function HotelResults({ searchInput }: { searchInput: HotelSearchInput }) 
           guests={searchInput.guests}
           checkIn={searchInput.checkIn}
           checkOut={searchInput.checkOut}
+          tripId={tripId}
         />
       </div>
     </>

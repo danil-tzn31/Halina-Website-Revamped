@@ -15,11 +15,13 @@ export function HotelResultsGrid({
   guests,
   checkIn,
   checkOut,
+  tripId,
 }: {
   offers: HotelOffer[];
   guests: number;
   checkIn: string;
   checkOut: string;
+  tripId?: string;
 }) {
   const [selected, setSelected] = useState<HotelOffer | null>(null);
   const [sortKey, setSortKey] = useState<HotelSortKey>("default");
@@ -61,6 +63,7 @@ export function HotelResultsGrid({
         guests={guests}
         checkIn={checkIn}
         checkOut={checkOut}
+        tripId={tripId}
         onClose={() => setSelected(null)}
       />
     </>

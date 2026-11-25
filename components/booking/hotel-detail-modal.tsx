@@ -34,12 +34,15 @@ export function HotelDetailModal({
   guests,
   checkIn,
   checkOut,
+  tripId,
   onClose,
 }: {
   offer: HotelOffer | null;
   guests: number;
   checkIn: string;
   checkOut: string;
+  // Set when this search came from a trip's "find a hotel" link.
+  tripId?: string;
   onClose: () => void;
 }) {
   const { status } = useSession();
@@ -72,6 +75,7 @@ export function HotelDetailModal({
             nights,
             pricePerNight: offer!.pricePerNight,
           },
+          ...(tripId ? { tripId } : {}),
         }),
       });
 

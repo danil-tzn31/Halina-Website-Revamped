@@ -8,6 +8,7 @@ import { BookingPrice } from "@/components/account/booking-price";
 import { ClearPendingCheckout } from "@/components/booking/clear-pending-checkout";
 import { BoardingPassCard, type BoardingPassData } from "@/components/booking/boarding-pass-card";
 import { toBoardingPass } from "@/lib/flights/boarding-pass";
+import { addHotelHref, stayPlaceForAirport } from "@/lib/trips";
 import { BOOKING_CONFIRMED_PHOTO_URL } from "@/lib/photos";
 
 // The one real page in an otherwise modal-first booking flow — Stripe's
@@ -29,6 +30,7 @@ type BookingRow = {
   dateTo: Date;
   guests: number;
   details: unknown;
+  tripId: string | null;
 };
 
 export default async function BookingSuccessPage({
@@ -43,6 +45,9 @@ export default async function BookingSuccessPage({
   // round-trip just to show the fallback message below.
   let booking: BookingRow | null = null;
   let boardingPass: BoardingPassData | null = null;
+  // Set only for a paid flight whose trip has no hotel yet — that's when
+  // "find a place to stay" is worth offering.
+  let addHotel: { href: string; place: string } | null = null;
   if (sessionId) {
     const { prisma } = await import("@/lib/prisma");
     booking = await prisma.booking.findFirst({ where: { stripeSessionId: sessionId } });
@@ -68,6 +73,30 @@ export default async function BookingSuccessPage({
         },
         session?.user?.name ?? "Guest"
       );
+
+      if (booking.tripId) {
+        const trip = await prisma.trip.findUnique({
+          where: { id: booking.tripId },
+          include: {
+            bookings: {
+              where: { type: "HOTEL", status: { not: "CANCELLED" } },
+              select: { id: true },
+            },
+          },
+        });
+        if (trip && trip.bookings.length === 0) {
+          addHotel = {
+            place: stayPlaceForAirport(trip.destination),
+            href: addHotelHref({
+              id: trip.id,
+              destination: trip.destination,
+              startDate: trip.startDate.toISOString().slice(0, 10),
+              endDate: trip.endDate.toISOString().slice(0, 10),
+              guests: booking.guests,
+            }),
+          };
+        }
+      }
     }
   }
 
@@ -120,7 +149,27 @@ export default async function BookingSuccessPage({
               // Flight, paid, route parsed cleanly — the boarding pass
               // card replaces the plain box entirely, since it already
               // shows name/type/price plus more.
-              <BoardingPassCard booking={boardingPass} />
+              <>
+                <BoardingPassCard booking={boardingPass} />
+                {addHotel && (
+                  <div className="mt-6 flex w-full flex-col items-start gap-3 border border-line bg-paper-raised px-6 py-5 text-left sm:flex-row sm:items-center">
+                    <div>
+                      <p className="text-[15px] text-ink">
+                        Need a place to stay in {addHotel.place}?
+                      </p>
+                      <p className="mt-1 text-[13px] text-ink-soft">
+                        We&apos;ll fill in your dates and guests.
+                      </p>
+                    </div>
+                    <Link
+                      href={addHotel.href}
+                      className="border border-ink px-5 py-2.5 text-[12.5px] uppercase tracking-wide text-ink transition-colors hover:bg-ink hover:text-paper sm:ml-auto"
+                    >
+                      Find a hotel
+                    </Link>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="mt-8 w-full border border-line bg-paper-raised px-6 py-5 text-left">
                 <p className="text-[15px] text-ink">{booking.name}</p>

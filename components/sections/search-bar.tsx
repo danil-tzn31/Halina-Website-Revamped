@@ -28,6 +28,7 @@ export function SearchBar({
   initialCheckIn,
   initialCheckOut,
   initialGuests,
+  tripId,
 }: {
   mode?: "home" | "results";
   initialTab?: Tab;
@@ -41,6 +42,9 @@ export function SearchBar({
   initialCheckIn?: string;
   initialCheckOut?: string;
   initialGuests?: number;
+  // Carried along on a hotel re-search so changing dates on /hotels
+  // doesn't drop the trip the visitor is booking for.
+  tripId?: string;
 } = {}) {
   const [tab, setTab] = useState<Tab>(initialTab ?? "flights");
   const [tripType, setTripType] = useState<TripType>(initialTripType ?? "one_way");
@@ -134,6 +138,7 @@ export function SearchBar({
           checkOut: entries.checkOut ?? "",
           guests: String(guests),
         });
+        if (tripId) params.set("trip", tripId);
         url = `/hotels?${params.toString()}`;
       }
       // Routed through startNavigation so the results area shows a skeleton

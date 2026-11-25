@@ -17,6 +17,10 @@ import {
   DestinationWeather,
   DestinationWeatherSkeleton,
 } from "@/components/destinations/destination-weather";
+import {
+  DestinationClimate,
+  DestinationClimateSkeleton,
+} from "@/components/destinations/destination-climate";
 
 // Plain-English versions of the tags each destination already carries.
 // The trip finder uses them for matching; this page is the first place
@@ -128,6 +132,11 @@ export default async function DestinationPage({
               <GlanceRow label="Right now">
                 <Suspense fallback={<DestinationWeatherSkeleton />}>
                   <DestinationWeather lat={destination.coords.lat} lng={destination.coords.lng} />
+                </Suspense>
+              </GlanceRow>
+              <GlanceRow label="Usually drier">
+                <Suspense fallback={<DestinationClimateSkeleton />}>
+                  <DestinationClimate lat={destination.coords.lat} lng={destination.coords.lng} />
                 </Suspense>
               </GlanceRow>
               <GlanceRow label="Nearest airport">

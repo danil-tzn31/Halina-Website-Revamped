@@ -126,32 +126,22 @@ async function fetchFromGoogleFlights(
     travel_class: "ECONOMY",
     adults: String(params.adults),
     limit: "50",
+    // Without these the API started returning empty results for
+    // Philippine routes (Nov 2026) while US routes still worked. Searching
+    // "from" the Philippines brings them back. Currency has to stay USD:
+    // asking for PHP came back empty too.
+    country_code: "PH",
+    language_code: "en-US",
   });
 
-  const res = await fetch(`${API_BASE}/api/v1/searchFlights?${query}`, {
-    headers: {
-      "x-rapidapi-key": apiKey,
-      "x-rapidapi-host": API_HOST,
-    },
-    // Flight prices shift constantly and this endpoint is rate-limited on
-    // free tiers — a short cache avoids burning quota when clicking back
-    // and forth between searches.
-    next: { revalidate: 60 },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Google Flights2 responded with ${res.status}`);
+  // It also sometimes returns an empty but "successful" answer for a route
+  // that normally has plenty of flights, so one quick retry is worth it
+  // before falling back to sample data. Kept to one so a real outage
+  // doesn't burn through the free quota.
+  let rawOffers = await requestOffers(query, apiKey);
+  if (rawOffers.length === 0) {
+    rawOffers = await requestOffers(query, apiKey, { skipCache: true });
   }
-
-  const json: RawResponse = await res.json();
-  if (!json.status) {
-    throw new Error("Google Flights2 returned status: false");
-  }
-
-  const rawOffers = [
-    ...(json.data?.itineraries?.topFlights ?? []),
-    ...(json.data?.itineraries?.otherFlights ?? []),
-  ];
 
   logRawOfferOnce(rawOffers);
 
@@ -164,6 +154,39 @@ async function fetchFromGoogleFlights(
   }
 
   return offers;
+}
+
+async function requestOffers(
+  query: URLSearchParams,
+  apiKey: string,
+  { skipCache = false }: { skipCache?: boolean } = {}
+): Promise<RawOffer[]> {
+  const headers = {
+    "x-rapidapi-key": apiKey,
+    "x-rapidapi-host": API_HOST,
+  };
+  // Flight prices shift constantly and this endpoint is rate-limited on
+  // free tiers — a short cache avoids burning quota when clicking back
+  // and forth between searches. The retry skips it, otherwise it would
+  // just get the same cached empty answer back.
+  const res = await fetch(
+    `${API_BASE}/api/v1/searchFlights?${query}`,
+    skipCache ? { headers, cache: "no-store" } : { headers, next: { revalidate: 60 } }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Google Flights2 responded with ${res.status}`);
+  }
+
+  const json: RawResponse = await res.json();
+  if (!json.status) {
+    throw new Error("Google Flights2 returned status: false");
+  }
+
+  return [
+    ...(json.data?.itineraries?.topFlights ?? []),
+    ...(json.data?.itineraries?.otherFlights ?? []),
+  ];
 }
 
 // Results are not filtered to nonstop-only — that also hid legitimate

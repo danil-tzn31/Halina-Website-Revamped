@@ -2,6 +2,7 @@ import type { FlightOffer, FlightSearchParams, FlightSearchResult } from "./type
 import { getMockFlightOffers } from "./mock-data";
 import { isDomesticRoute } from "./airports";
 import { hasTime } from "./format";
+import { fetchFromSerpApi } from "./serpapi-provider";
 
 // Replaces the old site's flights3.js — same RapidAPI listing ("Google
 // Flights2"), but called from the server instead of the browser, so the
@@ -215,8 +216,17 @@ function dropUnrealisticDurations(
 export async function searchFlights(
   params: FlightSearchParams
 ): Promise<FlightSearchResult> {
+  // Main provider first, then SerpApi for the routes and dates it misses,
+  // and sample data only if neither finds anything.
   try {
     const offers = await fetchFromGoogleFlights(params);
+    return { offers: dropUnrealisticDurations(offers, params), isFallback: false };
+  } catch (error) {
+    console.error("[flights] main provider failed, trying SerpApi:", error);
+  }
+
+  try {
+    const offers = await fetchFromSerpApi(params);
     return { offers: dropUnrealisticDurations(offers, params), isFallback: false };
   } catch (error) {
     console.error("[flights] falling back to sample data:", error);

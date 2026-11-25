@@ -30,10 +30,30 @@ export const SEE_ALL_BENTO_SPAN_PATTERN = [
   "",                             // small
 ];
 
+// What the last few cards use when the list doesn't end on a full set of
+// six (the filtered /destinations page, or 38 cards = six sets + 2). Each
+// layout fills its final rows exactly at 4 columns, so the grid ends on a
+// clean edge instead of a hole, while still mixing card sizes.
+const LEFTOVER_SPANS: Record<number, string[]> = {
+  1: ["sm:col-span-2 sm:row-span-2 lg:col-span-4"],
+  2: ["sm:col-span-2 sm:row-span-2 lg:col-span-3", "sm:col-span-2 sm:row-span-2 lg:col-span-1"],
+  3: ["sm:row-span-2", "sm:col-span-2 sm:row-span-2", "sm:row-span-2"], // tall, big, tall
+  4: ["sm:col-span-2 sm:row-span-2", "sm:col-span-2", "", ""], // big, wide, small, small
+  5: ["sm:row-span-2", "sm:col-span-2", "", "", "sm:col-span-2"], // tall, wide, small, small, wide
+};
+
 export function getBentoSpanClassName(
   index: number,
-  pattern: string[] = BENTO_SPAN_PATTERN
+  pattern: string[] = BENTO_SPAN_PATTERN,
+  total?: number
 ): string {
+  if (total !== undefined) {
+    const fullSets = Math.floor(total / pattern.length) * pattern.length;
+    const leftover = total - fullSets;
+    if (leftover > 0 && index >= fullSets) {
+      return LEFTOVER_SPANS[leftover]?.[index - fullSets] ?? "";
+    }
+  }
   return pattern[index % pattern.length];
 }
 
@@ -58,7 +78,7 @@ export function DestinationGrid({
         <DestinationCard
           key={destination.slug}
           destination={destination}
-          className={getBentoSpanClassName(index, pattern)}
+          className={getBentoSpanClassName(index, pattern, destinations.length)}
           priority={index === 0}
         />
       ))}

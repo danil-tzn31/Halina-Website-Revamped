@@ -19,11 +19,6 @@ const BUDGET_OPTIONS: { value: Budget; label: string }[] = [
   { value: "splurge", label: "Splurge" },
 ];
 
-// Once filtered, the list is rarely a multiple of six, and the bento
-// pattern only tiles cleanly in full sets of six, so it would leave holes.
-// Filtered results use one even card size instead.
-const FILTERED_PATTERN = ["sm:row-span-2"];
-
 // The /destinations grid with two rows of filter chips above it. Uses the
 // vibe and budget tags every destination already has. Picking a chip again
 // turns it off.
@@ -100,7 +95,7 @@ export function DestinationBrowser({ destinations }: { destinations: Destination
         <DestinationGrid
           destinations={shown}
           className="mt-6"
-          pattern={isFiltered ? FILTERED_PATTERN : SEE_ALL_BENTO_SPAN_PATTERN}
+          pattern={SEE_ALL_BENTO_SPAN_PATTERN}
         />
       )}
     </div>

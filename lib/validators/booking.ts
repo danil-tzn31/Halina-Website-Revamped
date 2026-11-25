@@ -12,6 +12,9 @@ export const createBookingSchema = z.object({
   dateTo: z.string().min(1),
   guests: z.coerce.number().int().min(1).max(9).default(1),
   details: z.record(z.string(), z.unknown()).optional(),
+  // Only used by hotel bookings made from a trip's "find a place to stay"
+  // link. The route checks the trip belongs to the signed-in user.
+  tripId: z.string().min(1).optional(),
 });
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;

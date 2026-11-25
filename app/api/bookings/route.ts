@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { createBookingSchema } from "@/lib/validators/booking";
+import { arrivalCodeFromRoute } from "@/lib/trips";
 
 // Creates a booking row in PENDING status — replaces the old site's
 // payment_process.php, which inserted straight from $_POST with no
@@ -30,9 +31,39 @@ export async function POST(req: NextRequest) {
   }
 
   const { prisma } = await import("@/lib/prisma");
+  const userId = session.user.id;
+  const { type, name, dateFrom, dateTo } = parsed.data;
+
+  // Every flight starts its own trip, so a hotel can be added to it later.
+  // A hotel only joins a trip if that trip is really this user's — a
+  // tampered or stale id just books the hotel on its own instead of
+  // failing the whole booking.
+  let tripId: string | null = null;
+  if (type === "FLIGHT") {
+    const destination = arrivalCodeFromRoute(name);
+    if (destination) {
+      const trip = await prisma.trip.create({
+        data: {
+          userId,
+          destination,
+          startDate: new Date(dateFrom),
+          endDate: new Date(dateTo),
+        },
+      });
+      tripId = trip.id;
+    }
+  } else if (parsed.data.tripId) {
+    const trip = await prisma.trip.findFirst({
+      where: { id: parsed.data.tripId, userId },
+      select: { id: true },
+    });
+    tripId = trip?.id ?? null;
+  }
+
   const booking = await prisma.booking.create({
     data: {
-      userId: session.user.id,
+      userId,
+      tripId,
       type: parsed.data.type,
       name: parsed.data.name,
       price: parsed.data.price,

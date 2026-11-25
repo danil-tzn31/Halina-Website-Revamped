@@ -21,6 +21,7 @@ import {
   DestinationClimate,
   DestinationClimateSkeleton,
 } from "@/components/destinations/destination-climate";
+import { DestinationMap } from "@/components/destinations/destination-map";
 
 // Plain-English versions of the tags each destination already carries.
 // The trip finder uses them for matching; this page is the first place
@@ -96,10 +97,11 @@ export default async function DestinationPage({
       </div>
 
       <main className="mx-auto w-full max-w-[1180px] flex-1 px-6 py-12 sm:px-10">
-        {/* Story on the left, quick facts on the right. Stacks on smaller
-            screens, with the facts card under the buttons. */}
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-16">
-          <div>
+        {/* Everything to read flows down the left; the map sits on the right
+            and stays in view while scrolling. A single flow means no column
+            ends early next to a taller one. Stacks on smaller screens. */}
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-16">
+          <div className="min-w-0">
             <p className="max-w-[60ch] text-[15.5px] leading-relaxed text-ink-soft">
               {destination.blurb}
             </p>
@@ -124,25 +126,14 @@ export default async function DestinationPage({
                 Search hotels in {destination.name}
               </Link>
             </div>
-          </div>
 
-          <aside className="h-fit border border-line bg-paper-raised px-6 py-5">
-            <p className="text-[13px] italic text-ink-soft">At a glance</p>
-            <dl className="mt-4 flex flex-col gap-5">
-              <GlanceRow label="Right now">
-                <Suspense fallback={<DestinationWeatherSkeleton />}>
-                  <DestinationWeather lat={destination.coords.lat} lng={destination.coords.lng} />
-                </Suspense>
-              </GlanceRow>
-              <GlanceRow label="Usually drier">
-                <Suspense fallback={<DestinationClimateSkeleton />}>
-                  <DestinationClimate lat={destination.coords.lat} lng={destination.coords.lng} />
-                </Suspense>
-              </GlanceRow>
+            {/* Quick facts as a slim strip under the buttons. */}
+            <dl className="mt-10 grid grid-cols-2 gap-x-8 gap-y-5 border-y border-line py-5 sm:grid-cols-[auto_auto_minmax(0,1fr)] sm:gap-x-12">
               <GlanceRow label="Nearest airport">
                 {airportCity} <span className="text-ink-soft">· {destination.nearestAirport}</span>
               </GlanceRow>
-              <GlanceRow label="Good for">
+              <GlanceRow label="Budget">{BUDGET_LABELS[destination.budget]}</GlanceRow>
+              <GlanceRow label="Good for" className="col-span-2 sm:col-span-1">
                 <TagList
                   tags={[
                     ...destination.vibes.map((v) => VIBE_LABELS[v]),
@@ -150,27 +141,50 @@ export default async function DestinationPage({
                   ]}
                 />
               </GlanceRow>
-              <GlanceRow label="Budget">{BUDGET_LABELS[destination.budget]}</GlanceRow>
             </dl>
-          </aside>
-        </div>
 
-        <div className="mt-16 border-t border-line pt-8">
-          <p className="text-[13px] italic text-ink-soft">More destinations</p>
-          {/* No min-w — a fixed min-width left uneven gaps between short
-              and long names. Sizing each link to its own content makes
-              gap-4 the only thing controlling spacing. */}
-          <div className="mt-4 flex gap-6 overflow-x-auto pb-2">
-            {DESTINATIONS.filter((d) => d.slug !== destination.slug).map((d) => (
-              <Link
-                key={d.slug}
-                href={`/destinations/${d.slug}`}
-                className="shrink-0 whitespace-nowrap text-[13.5px] text-ink-soft underline-offset-4 hover:text-ink hover:underline"
-              >
-                {d.name}
-              </Link>
-            ))}
+            <section className="mt-10 border border-line bg-paper-raised px-6 py-5">
+              <p className="text-[13px] italic text-ink-soft">Weather</p>
+              <dl className="mt-4 grid gap-8 sm:grid-cols-2 sm:gap-10">
+                <GlanceRow label="Right now">
+                  <Suspense fallback={<DestinationWeatherSkeleton />}>
+                    <DestinationWeather lat={destination.coords.lat} lng={destination.coords.lng} />
+                  </Suspense>
+                </GlanceRow>
+                <GlanceRow label="Usually drier">
+                  <Suspense fallback={<DestinationClimateSkeleton />}>
+                    <DestinationClimate lat={destination.coords.lat} lng={destination.coords.lng} />
+                  </Suspense>
+                </GlanceRow>
+              </dl>
+            </section>
+
+            <div className="mt-12 border-t border-line pt-8">
+              <p className="text-[13px] italic text-ink-soft">More destinations</p>
+              {/* One scrolling row on phones, wrapping on desktop. Links size
+                  to their own text (no min-width), so the gap is the only
+                  thing controlling spacing. */}
+              <div className="mt-4 flex gap-6 overflow-x-auto pb-2 lg:flex-wrap lg:gap-y-2 lg:overflow-visible">
+                {DESTINATIONS.filter((d) => d.slug !== destination.slug).map((d) => (
+                  <Link
+                    key={d.slug}
+                    href={`/destinations/${d.slug}`}
+                    className="shrink-0 whitespace-nowrap text-[13.5px] text-ink-soft underline-offset-4 hover:text-ink hover:underline"
+                  >
+                    {d.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
+
+          {/* top-[120px] clears the fixed navbar while the map stays put. */}
+          <aside className="lg:sticky lg:top-[120px] lg:h-fit">
+            <p className="text-[13px] italic text-ink-soft">Where it is</p>
+            <div className="mt-4">
+              <DestinationMap current={destination} />
+            </div>
+          </aside>
         </div>
       </main>
 
@@ -179,9 +193,17 @@ export default async function DestinationPage({
   );
 }
 
-function GlanceRow({ label, children }: { label: string; children: React.ReactNode }) {
+function GlanceRow({
+  label,
+  className,
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div>
+    <div className={className}>
       <dt className="text-[11.5px] uppercase tracking-[0.12em] text-ink-soft">{label}</dt>
       <dd className="mt-1.5 text-[14.5px] text-ink">{children}</dd>
     </div>

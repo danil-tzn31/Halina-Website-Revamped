@@ -85,7 +85,7 @@ export default async function DestinationPage({
           <div className="mx-auto w-full max-w-[1180px] px-6 pb-10 sm:px-10">
             {/* text-sand-light, not text-sand — text-sand is tuned for
                 light backgrounds and reads low-contrast against the dark
-                hero photo (same pattern as the homepage hero's eyebrow). */}
+                hero photo. */}
             <p className="text-[12px] uppercase tracking-[0.16em] text-sand-light">
               {destination.region}
             </p>

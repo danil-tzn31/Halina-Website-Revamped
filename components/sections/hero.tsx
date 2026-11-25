@@ -13,8 +13,8 @@ import { PRELOAD_HOLD_MS, usePageReady } from "@/lib/use-page-ready";
 // used, cropped, as the social-preview image) and next.config.ts for the
 // remotePatterns entry that allows it through Next's image optimizer.
 
-// Entrance animation (photo/gradient fade-in, then eyebrow/headline/
-// subtext/search bar staggering in) is gated on `usePageReady` — the same
+// Entrance animation (photo/gradient fade-in, then headline/subtext/
+// search bar staggering in) is gated on `usePageReady` — the same
 // signal Preloader uses to fade itself out. Without that shared gate the
 // animation would run on mount while still hidden behind Preloader
 // (`z-[999]`) and finish invisibly. Gating both on the same hook makes the
@@ -107,24 +107,10 @@ export function Hero({
             container instead of inheriting the headline's width. */}
         <div className="mt-auto pb-16 pt-24">
           <div className="max-w-xl">
-            {/* text-sand-light, not text-sand — text-sand is tuned for
-                light backgrounds and reads too dark against this photo. */}
-            {/* Eyebrow, headline, and subtext fade + rise in with staggered
-                delays (~0.13-0.15s apart) via explicit initial/animate/
-                transition per element, matching Preloader's pattern rather
-                than Framer's staggerChildren. */}
-            <motion.span
-              className="mb-5 block text-[13px] uppercase tracking-[0.12em] text-sand-light"
-              initial={{ opacity: 0, y: 14 }}
-              animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }}
-              transition={{
-                duration: prefersReducedMotion ? 0 : 0.6,
-                delay: prefersReducedMotion ? 0 : 0.15,
-                ease: HERO_EASE,
-              }}
-            >
-              Philippines, curated
-            </motion.span>
+            {/* Headline and subtext fade + rise in with staggered delays
+                (~0.13-0.15s apart) via explicit initial/animate/transition
+                per element, matching Preloader's pattern rather than
+                Framer's staggerChildren. */}
             <motion.h1
               className="text-[2.75rem] font-light leading-[1.02] tracking-tight text-paper sm:text-6xl lg:text-[5.25rem]"
               initial={{ opacity: 0, y: 20 }}

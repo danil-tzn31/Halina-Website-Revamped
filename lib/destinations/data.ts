@@ -23,6 +23,9 @@ export type Destination = {
   name: string;
   region: string;
   nearestAirport: string;
+  // Rough town or landmark location, used for the weather forecast and the
+  // map pin. Two decimals is about a kilometre, which is plenty for both.
+  coords: { lat: number; lng: number };
   blurb: string;
   highlights: string[];
   photo: string;
@@ -42,6 +45,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Boracay",
     region: "Aklan",
     nearestAirport: "KLO",
+    coords: { lat: 11.97, lng: 121.92 },
     blurb:
       "Powder-white sand and calm turquoise water — the Philippines' most famous beach, and still one of its best.",
     highlights: ["White Beach", "Island hopping", "Sunset sailing"],
@@ -56,6 +60,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Siargao",
     region: "Surigao del Norte",
     nearestAirport: "IAO",
+    coords: { lat: 9.80, lng: 126.16 },
     blurb:
       "The country's surfing capital — Cloud 9's barrels, palm-lined roads, and a laid-back island pace.",
     highlights: ["Cloud 9 surf break", "Island hopping", "Lagoon swimming"],
@@ -75,6 +80,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Bohol",
     region: "Central Visayas",
     nearestAirport: "TAG",
+    coords: { lat: 9.83, lng: 124.14 },
     blurb:
       "Home to the otherworldly Chocolate Hills and some of the friendliest reefs for first-time divers.",
     highlights: ["Chocolate Hills", "Tarsier sanctuary", "Loboc River cruise"],
@@ -89,6 +95,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Batad Rice Terraces",
     region: "Ifugao",
     nearestAirport: "MNL",
+    coords: { lat: 16.94, lng: 121.13 },
     blurb:
       "Amphitheater-shaped rice terraces carved into the mountains over 2,000 years ago — reached by a scenic drive north from Manila.",
     highlights: ["Rice terrace trekking", "Tappiya Falls", "Ifugao villages"],
@@ -103,6 +110,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Coron",
     region: "Palawan",
     nearestAirport: "USU",
+    coords: { lat: 12.00, lng: 120.20 },
     blurb:
       "Limestone cliffs, hidden lagoons, and some of the best wreck diving in the world.",
     highlights: ["Kayangan Lake", "Wreck diving", "Twin Lagoon"],
@@ -117,6 +125,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Vigan",
     region: "Ilocos Sur",
     nearestAirport: "LAO",
+    coords: { lat: 17.57, lng: 120.39 },
     blurb:
       "Cobblestone streets and Spanish-colonial houses along Calle Crisologo — one of the best-preserved old towns in Asia.",
     highlights: ["Calle Crisologo", "Kalesa rides", "Empanada tasting"],
@@ -135,6 +144,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Baguio",
     region: "Benguet",
     nearestAirport: "MNL",
+    coords: { lat: 16.41, lng: 120.59 },
     blurb:
       "The 'City of Pines' — cool mountain air, pine-covered ridgelines, and a laid-back highland pace a few hours north of Manila.",
     highlights: ["Session Road", "Burnham Park", "Mines View Park"],
@@ -149,6 +159,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Tagaytay",
     region: "Cavite",
     nearestAirport: "MNL",
+    coords: { lat: 14.12, lng: 120.96 },
     blurb:
       "Ridge-top views of Taal Volcano rising out of its own lake, plus the cooler air and farm-to-table dining that make it a favorite Manila day trip.",
     highlights: ["Taal Volcano viewpoint", "Sky Ranch", "Farm-to-table dining"],
@@ -163,6 +174,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Sagada",
     region: "Mountain Province",
     nearestAirport: "MNL",
+    coords: { lat: 17.08, lng: 120.90 },
     blurb:
       "Centuries-old hanging coffins, cool pine forests, and cave systems deep enough to spend a whole day exploring underground.",
     highlights: ["Sumaguing Cave", "Hanging Coffins", "Kiltepan sunrise viewpoint"],
@@ -177,6 +189,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Puerto Princesa",
     region: "Palawan",
     nearestAirport: "PPS",
+    coords: { lat: 9.74, lng: 118.74 },
     blurb:
       "Gateway to a UNESCO-listed underground river winding through limestone caves — plus quieter island-hopping than Palawan's more famous spots.",
     highlights: ["Underground River tour", "Honda Bay island hopping", "Iwahig firefly watching"],
@@ -191,6 +204,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Davao",
     region: "Davao del Sur",
     nearestAirport: "DVO",
+    coords: { lat: 7.07, lng: 125.61 },
     blurb:
       "Home base for trekking the Philippines' tallest peak, Mt. Apo, and meeting rescued Philippine Eagles up close at the city's own eagle center.",
     highlights: ["Philippine Eagle Center", "Mt. Apo trekking", "Eden Nature Park"],
@@ -215,6 +229,7 @@ export const DESTINATIONS: Destination[] = [
     name: "El Nido",
     region: "Palawan",
     nearestAirport: "ENI",
+    coords: { lat: 11.18, lng: 119.39 },
     blurb:
       "Limestone karst towers rising from turquoise lagoons — the Bacuit archipelago's island-hopping circuit is the most dramatic seascape in the Philippines.",
     highlights: ["Bacuit archipelago", "Island hopping", "Hidden lagoons"],
@@ -229,6 +244,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Pagudpud",
     region: "Ilocos Norte",
     nearestAirport: "LAO",
+    coords: { lat: 18.56, lng: 120.79 },
     blurb:
       "Wide golden-sand beaches and wind-turbine-lined bluffs at the northern tip of Luzon, quieter and less developed than the Visayas beach towns.",
     highlights: ["Saud Beach", "Bangui windmills", "Blue Lagoon"],
@@ -243,6 +259,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Puerto Galera",
     region: "Oriental Mindoro",
     nearestAirport: "MNL",
+    coords: { lat: 13.51, lng: 120.95 },
     blurb:
       "A short ferry from Manila to some of Southeast Asia's richest reefs, where the diving is as much the draw as the beach.",
     highlights: ["Scuba diving", "White Beach", "Coral reefs"],
@@ -257,6 +274,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Caramoan",
     region: "Camarines Sur",
     nearestAirport: "WNP",
+    coords: { lat: 13.77, lng: 123.86 },
     blurb:
       "Coves and karst islets so cinematic that global reality-TV crews keep coming back, reached only by boat from a sleepy Bicol fishing town.",
     highlights: ["Matukad Island", "Hidden coves", "Island hopping"],
@@ -271,6 +289,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Hundred Islands",
     region: "Pangasinan",
     nearestAirport: "CRK",
+    coords: { lat: 16.20, lng: 120.03 },
     blurb:
       "Scattered limestone islets in Lingayen Gulf, small enough to hop between by outrigger boat in a single low-key day trip.",
     highlights: ["124 limestone islands", "Island hopping", "Snorkeling coves"],
@@ -285,6 +304,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Batanes",
     region: "Batanes",
     nearestAirport: "BSO",
+    coords: { lat: 20.45, lng: 121.97 },
     blurb:
       "Wind-swept rolling hills, stone Ivatan houses, and cliffside roads at the Philippines' northernmost, most weather-beaten edge.",
     highlights: ["Rolling hills", "Stone Ivatan houses", "Basco lighthouse"],
@@ -299,6 +319,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Banaue",
     region: "Ifugao",
     nearestAirport: "MNL",
+    coords: { lat: 16.91, lng: 121.06 },
     blurb:
       "Stone-and-mud rice terraces climbing the Cordillera slopes above an Ifugao market town, carved by hand over more than a thousand years and still worked the same way today.",
     highlights: ["Banaue Viewpoint", "Rice terrace trekking", "Ifugao wood carving"],
@@ -313,6 +334,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Intramuros",
     region: "Manila",
     nearestAirport: "MNL",
+    coords: { lat: 14.59, lng: 120.98 },
     blurb:
       "Thick 16th-century Spanish ramparts enclosing Fort Santiago, San Agustin Church, and cobblestone plazas at the walled heart of old Manila.",
     highlights: ["Fort Santiago", "San Agustin Church", "Kalesa rides"],
@@ -327,6 +349,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Marinduque",
     region: "Marinduque",
     nearestAirport: "MNL",
+    coords: { lat: 13.45, lng: 121.84 },
     blurb:
       "A heart-shaped island known for the Lenten Moriones Festival's mask-and-armor Roman-centurion street pageant, framed by the pale sands of Poctoy White Beach.",
     highlights: ["Moriones Festival", "Poctoy White Beach", "Balanacan viewpoint"],
@@ -341,6 +364,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Mayon Volcano",
     region: "Albay",
     nearestAirport: "DRP",
+    coords: { lat: 13.26, lng: 123.69 },
     blurb:
       "The world's most perfectly conical volcano rises straight out of rice paddies, ringed by the ash-buried ruins of a 19th-century church tower.",
     highlights: ["Mayon's perfect cone", "Cagsawa Ruins", "ATV lava trail rides"],
@@ -355,6 +379,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Mt. Pulag",
     region: "Benguet",
     nearestAirport: "MNL",
+    coords: { lat: 16.58, lng: 120.89 },
     blurb:
       "Luzon's third-highest peak rewards a pre-dawn scramble with a sea of clouds spilling across the summit's grassland ridges.",
     highlights: ["Sea of clouds summit", "Dwarf bonsai forest", "Ambangeg trail trek"],
@@ -369,6 +394,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Cebu City",
     region: "Cebu",
     nearestAirport: "CEB",
+    coords: { lat: 10.32, lng: 123.89 },
     blurb:
       "Where the Spanish colonial era first touched the Philippines, layering centuries-old churches and a modern skyline against the Mactan Strait.",
     highlights: ["Magellan's Cross", "Basilica del Santo Nino", "Sirao Flower Garden"],
@@ -383,6 +409,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Moalboal",
     region: "Cebu",
     nearestAirport: "CEB",
+    coords: { lat: 9.95, lng: 123.39 },
     blurb:
       "A short walk from the shore drops divers straight into a churning sardine run, with the turtle-friendly reefs of Pescador Island a banca ride away.",
     highlights: ["Sardine run diving", "Pescador Island reef", "Panagsama Beach turtles"],
@@ -397,6 +424,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Oslob",
     region: "Cebu",
     nearestAirport: "CEB",
+    coords: { lat: 9.48, lng: 123.41 },
     blurb:
       "Whale sharks glide within arm's reach of outrigger boats each morning, just off a coastline better known a generation ago for tuna fishing.",
     highlights: ["Whale shark encounters", "Tumalog Falls", "Sumilon Island sandbar"],
@@ -411,6 +439,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Bantayan Island",
     region: "Cebu",
     nearestAirport: "CEB",
+    coords: { lat: 11.17, lng: 123.72 },
     blurb:
       "Powder-white sand and a laid-back fishing-town pace make this ferry-only island north of Cebu a favorite escape from the mainland's crowds.",
     highlights: ["Sugar Beach", "Ogtong Cave pool", "Virgin Island sandbar"],
@@ -425,6 +454,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Dumaguete & Apo Island",
     region: "Negros Oriental",
     nearestAirport: "DGT",
+    coords: { lat: 9.31, lng: 123.31 },
     blurb:
       "A laid-back university town on Rizal Boulevard that's also the jump-off point for Apo Island, where green sea turtles graze the reef just meters from shore.",
     highlights: ["Rizal Boulevard", "Apo Island snorkeling", "Sea turtle sightings"],
@@ -439,6 +469,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Iloilo City",
     region: "Iloilo",
     nearestAirport: "ILO",
+    coords: { lat: 10.72, lng: 122.56 },
     blurb:
       "Calle Real's restored art-deco facades and Molo's silver Gothic church anchor a heritage downtown built on sugar money and now known for batchoy.",
     highlights: ["Calle Real heritage strip", "Molo Church", "Batchoy tasting"],
@@ -453,6 +484,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Guimaras",
     region: "Guimaras",
     nearestAirport: "ILO",
+    coords: { lat: 10.59, lng: 122.63 },
     blurb:
       "Ortiz Wharf's short pumpboat ride lands you among the world's sweetest mangoes, quiet coves, and the hilltop Trappist Monastery.",
     highlights: ["Mango orchard tours", "Trappist Monastery", "Alubihod Beach"],
@@ -467,6 +499,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Bacolod",
     region: "Negros Occidental",
     nearestAirport: "BCD",
+    coords: { lat: 10.68, lng: 122.95 },
     blurb:
       "The ivy-covered shell of a fire-gutted 1920s sugar mansion, known simply as The Ruins, headlines a city that turns its plaza into a smiling mask parade every October.",
     highlights: ["The Ruins mansion", "MassKara Festival", "Chicken inasal"],
@@ -481,6 +514,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Siquijor",
     region: "Siquijor",
     nearestAirport: "DGT",
+    coords: { lat: 9.20, lng: 123.55 },
     blurb:
       "Century-old balete trees, waterfalls, and a lingering reputation for folk healers and witchcraft give this small island a mystique the ferry-hop from Dumaguete only deepens.",
     highlights: ["Cambugahay Falls", "Salagdoong Beach cliff jump", "Old balete tree"],
@@ -495,6 +529,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Limasawa",
     region: "Southern Leyte",
     nearestAirport: "TAC",
+    coords: { lat: 9.93, lng: 125.08 },
     blurb:
       "A modest cross on a quiet hilltop marks the spot where, by the Pigafetta account, the first Catholic Mass on Philippine soil was said in 1521.",
     highlights: ["First Mass shrine", "Historical marker", "Padre Burgos boat ride"],
@@ -509,6 +544,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Panglao",
     region: "Bohol",
     nearestAirport: "TAG",
+    coords: { lat: 9.58, lng: 123.77 },
     blurb:
       "Alona Beach's white sand and the nearby Chocolate Hills day trip make this the easiest full-package island stop in the Visayas.",
     highlights: ["Alona Beach", "Whale shark and dolphin watching", "Chocolate Hills day trip"],
@@ -523,6 +559,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Camiguin",
     region: "Camiguin",
     nearestAirport: "CGY",
+    coords: { lat: 9.25, lng: 124.72 },
     blurb:
       "A small island built by seven volcanoes, where you can snorkel over a sunken cemetery from an 1871 eruption and wade out to a sandbar that disappears with the tide.",
     highlights: ["White Island sandbar", "Sunken Cemetery", "Katibawasan Falls"],
@@ -537,6 +574,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Samal Island",
     region: "Davao del Norte",
     nearestAirport: "DVO",
+    coords: { lat: 7.08, lng: 125.71 },
     blurb:
       "A short banca ride from Davao City, Samal pairs white-sand coves with Monfort Bat Cave, home to the world's largest single colony of Geoffroy's rousette fruit bats.",
     highlights: ["Monfort Bat Cave", "Hagimit Falls", "Island-hopping beaches"],
@@ -551,6 +589,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Zamboanga City",
     region: "Zamboanga del Sur",
     nearestAirport: "ZAM",
+    coords: { lat: 6.92, lng: 122.08 },
     blurb:
       'The "City of Flowers" blends Spanish-colonial Fort Pilar and a distinct Chavacano-speaking Moro culture with a boat ride out to the pink sand of Great Santa Cruz Island.',
     highlights: ["Fort Pilar", "Great Santa Cruz Island", "Vinta boat rides"],
@@ -565,6 +604,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Lake Sebu",
     region: "South Cotabato",
     nearestAirport: "GES",
+    coords: { lat: 6.22, lng: 124.70 },
     blurb:
       "Zipline out over the water to reach a cluster of seven waterfalls, then meet the T'boli women who still hand-weave t'nalak cloth from patterns they say come to them in dreams.",
     highlights: ["Seven Falls zipline", "T'nalak weaving", "Lake Sebu boating"],
@@ -579,6 +619,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Enchanted River",
     region: "Surigao del Sur",
     nearestAirport: "BXU",
+    coords: { lat: 8.37, lng: 126.34 },
     blurb:
       "A spring-fed river so improbably sapphire-blue it earned its name, with underwater caves explored to 82 meters and still no confirmed bottom.",
     highlights: ["Turquoise spring waters", "Cliff diving spot", "Cave entrance snorkeling"],

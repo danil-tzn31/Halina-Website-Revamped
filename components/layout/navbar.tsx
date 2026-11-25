@@ -121,7 +121,7 @@ export function Navbar({
               className={cn(
                 "text-[13px] tracking-wide",
                 showLight
-                  ? "text-paper/70 [text-shadow:0_1px_4px_rgb(0_0_0/45%)]"
+                  ? "text-paper/85 [text-shadow:0_1px_4px_rgb(0_0_0/45%)]"
                   : "text-ink-soft/70"
               )}
             >

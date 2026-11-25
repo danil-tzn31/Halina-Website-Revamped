@@ -24,6 +24,7 @@ model User {
   isAdmin      Boolean   @default(false)
   createdAt    DateTime  @default(now())
   bookings     Booking[]
+  trips        Trip[]
 }
 
 enum BookingType {
@@ -54,5 +55,24 @@ model Booking {
   guests          Int           @default(1)
   details         Json? // flight number/departure time, or hotel-specific extras
   stripeSessionId String?
+  // Optional so bookings made before trips existed (and hotels booked on
+  // their own) still work. SetNull keeps the booking if its trip is ever
+  // removed.
+  trip            Trip?         @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  tripId          String?
   createdAt       DateTime      @default(now())
+}
+
+// Groups the bookings that belong to one journey — a flight plus the hotel
+// booked for it. Every flight booking starts a trip; a hotel joins one when
+// it's booked from that trip's "find a place to stay" link.
+model Trip {
+  id          String    @id @default(cuid())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  destination String // arrival airport code, e.g. "CEB"
+  startDate   DateTime
+  endDate     DateTime // same as startDate for a one-way flight
+  createdAt   DateTime  @default(now())
+  bookings    Booking[]
 }

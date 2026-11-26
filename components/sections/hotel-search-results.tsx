@@ -85,8 +85,8 @@ export function HotelSearchResults({
 
       {isFallback && (
         <p className="mt-2 text-[12.5px] italic text-sand">
-          Showing sample results — the live hotel API didn&apos;t respond,
-          so this is seeded demo data.
+          No live hotel prices came back for this search, so these are sample
+          hotels. Try again in a moment for real prices.
         </p>
       )}
 

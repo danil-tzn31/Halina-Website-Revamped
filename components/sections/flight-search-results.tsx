@@ -142,8 +142,8 @@ export function FlightSearchResults({
           <>
             {outbound.isFallback && (
               <p className="mb-3 text-[12.5px] italic text-sand">
-                Showing sample results — the live flight API didn&apos;t
-                respond, so this is seeded demo data.
+                No live flights came back for this date, so these are sample flights.
+                Try a nearby date for real prices.
               </p>
             )}
             {outbound.loading && (
